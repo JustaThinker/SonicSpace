@@ -35,6 +35,7 @@
     "Removed legacy Nothing OS branding references across all documentation and project files.",
     "Cleaned up README.md by removing emojis and the build/setup section.",
     "Fixed ChangelogSection type mismatch compilation error in ChangelogScreen.",
-    "Removed redundant update cards and 'What's New' sections from Settings and Update Settings screens."
+    "Removed redundant update cards and 'What's New' sections from Settings and Update Settings screens.",
+    "Fixed heightIn and maxWidth compilation errors in HomeScreen.kt."
   ]
 }

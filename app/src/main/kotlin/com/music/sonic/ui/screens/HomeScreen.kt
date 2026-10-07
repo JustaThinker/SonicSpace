@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -354,6 +355,164 @@ private fun HomeShelfCard(
         textAlign = if (isArtist) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start,
         modifier = Modifier.fillMaxWidth()
       )
+    }
+  }
+}
+
+@Composable
+private fun HomeSectionHeaderPlaceholder(
+  titleWidth: androidx.compose.ui.unit.Dp = 160.dp,
+  subtitleWidth: androidx.compose.ui.unit.Dp? = null,
+  showAction: Boolean = false,
+) {
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.SpaceBetween,
+    modifier =
+      Modifier.fillMaxWidth()
+        .padding(horizontal = PAGE_GUTTER, vertical = 8.dp)
+  ) {
+    Column(verticalArrangement = Arrangement.Center) {
+      Box(
+        modifier =
+          Modifier.width(titleWidth)
+            .height(20.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+      )
+      if (subtitleWidth != null) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+          modifier =
+            Modifier.width(subtitleWidth)
+              .height(13.dp)
+              .clip(RoundedCornerShape(4.dp))
+              .background(MaterialTheme.colorScheme.surfaceVariant)
+        )
+      }
+    }
+    if (showAction) {
+      Box(
+        modifier =
+          Modifier.size(24.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+      )
+    }
+  }
+}
+
+@Composable
+private fun HomeTrackRowPlaceholder() {
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    modifier =
+      Modifier.fillMaxWidth()
+        .heightIn(min = 52.dp)
+        .padding(vertical = 4.dp)
+  ) {
+    Box(
+      modifier =
+        Modifier.size(48.dp)
+          .clip(RoundedCornerShape(8.dp))
+          .background(MaterialTheme.colorScheme.surfaceVariant)
+    )
+    Spacer(Modifier.width(12.dp))
+    Column(
+      modifier = Modifier.weight(1f),
+      verticalArrangement = Arrangement.Center
+    ) {
+      Box(
+        modifier =
+          Modifier.fillMaxWidth(0.72f)
+            .height(14.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+      )
+      Spacer(Modifier.height(6.dp))
+      Box(
+        modifier =
+          Modifier.fillMaxWidth(0.48f)
+            .height(12.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+      )
+    }
+  }
+}
+
+@Composable
+private fun HomeShelfCardPlaceholder() {
+  Column(
+    modifier = Modifier.width(SHELF_CARD_WIDTH)
+  ) {
+    Box(
+      modifier =
+        Modifier.fillMaxWidth()
+          .aspectRatio(1f)
+          .clip(RoundedCornerShape(12.dp))
+          .background(MaterialTheme.colorScheme.surfaceVariant)
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    Box(
+      modifier =
+        Modifier.fillMaxWidth(0.85f)
+          .height(14.dp)
+          .clip(RoundedCornerShape(4.dp))
+          .background(MaterialTheme.colorScheme.surfaceVariant)
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    Box(
+      modifier =
+        Modifier.fillMaxWidth(0.55f)
+          .height(12.dp)
+          .clip(RoundedCornerShape(4.dp))
+          .background(MaterialTheme.colorScheme.surfaceVariant)
+    )
+  }
+}
+
+@Composable
+private fun HomeShelfSectionPlaceholder(
+  titleWidth: androidx.compose.ui.unit.Dp = 180.dp,
+  subtitleWidth: androidx.compose.ui.unit.Dp? = 110.dp,
+) {
+  HomeSectionHeaderPlaceholder(titleWidth = titleWidth, subtitleWidth = subtitleWidth)
+  Row(
+    modifier =
+      Modifier.fillMaxWidth()
+        .padding(bottom = 16.dp)
+        .horizontalScroll(rememberScrollState())
+  ) {
+    Spacer(Modifier.width(PAGE_GUTTER))
+    repeat(4) {
+      HomeShelfCardPlaceholder()
+      Spacer(Modifier.width(14.dp))
+    }
+  }
+}
+
+@Composable
+private fun HomeQuickPicksSectionPlaceholder(maxWidth: androidx.compose.ui.unit.Dp) {
+  HomeSectionHeaderPlaceholder(titleWidth = 150.dp, subtitleWidth = 90.dp, showAction = true)
+  val colWidth = trackColumnWidth(maxWidth)
+  Row(
+    modifier =
+      Modifier.fillMaxWidth()
+        .padding(bottom = 16.dp)
+        .horizontalScroll(rememberScrollState())
+  ) {
+    Spacer(Modifier.width(PAGE_GUTTER))
+    repeat(2) {
+      Column(
+        modifier = Modifier.width(colWidth),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+      ) {
+        repeat(TRACKS_PER_COLUMN) {
+          HomeTrackRowPlaceholder()
+        }
+      }
+      Spacer(Modifier.width(12.dp))
     }
   }
 }
@@ -1005,6 +1164,7 @@ fun HomeScreen(
     }
   ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+      val screenMaxWidth = maxWidth
       val color1 = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
       val color2 = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
       val color3 = MaterialTheme.colorScheme.secondary.copy(alpha = 0.04f)
@@ -1069,16 +1229,21 @@ fun HomeScreen(
             ShimmerHost {
               Row(
                 modifier =
-                  Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                  Modifier.fillMaxWidth()
+                    .padding(top = 2.dp, bottom = 6.dp)
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
               ) {
-                repeat(5) {
-                  TextPlaceholder(
-                    height = 30.dp,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.width(72.dp)
+                Spacer(Modifier.width(PAGE_GUTTER))
+                val chipWidths = listOf(68.dp, 84.dp, 76.dp, 92.dp, 72.dp)
+                chipWidths.forEach { width ->
+                  Box(
+                    modifier =
+                      Modifier.width(width)
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                   )
+                  Spacer(Modifier.width(8.dp))
                 }
               }
             }
@@ -1965,54 +2130,20 @@ fun HomeScreen(
         ) {
           item(key = "loading_shimmer") {
             ShimmerHost(modifier = Modifier.animateItem()) {
-              // 1. Quick Picks Skeleton
-              Row(
-                modifier =
-                  Modifier.horizontalScroll(rememberScrollState())
-                    .padding(
-                      WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues()
-                    )
-              ) {
-                repeat(3) {
-                  Spacer(
-                    modifier =
-                      Modifier.padding(horizontal = 8.dp, vertical = 12.dp)
-                        .width(250.dp)
-                        .height(290.dp)
-                        .clip(MaterialTheme.shapes.extraLarge)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                  )
-                }
-              }
+              val isInitialLoad =
+                homePage == null || (homePage?.sections.isNullOrEmpty() && isLoading)
+              if (isInitialLoad) {
+                // 1. Quick Picks / Picked for you skeleton (multi-column track rows matching RecentTrackRow layout)
+                HomeQuickPicksSectionPlaceholder(maxWidth = screenMaxWidth)
 
-              // 2. Speed Dial Skeleton
-              TextPlaceholder(
-                height = 36.dp,
-                modifier = Modifier.padding(12.dp).width(200.dp),
-              )
-              Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-                repeat(2) {
-                  Row(modifier = Modifier.fillMaxWidth()) {
-                    repeat(3) {
-                      GridItemPlaceHolder(modifier = Modifier.weight(1f), fillMaxWidth = true)
-                    }
-                  }
-                }
-              }
+                // 2. Shelf section skeleton (e.g. Daily Discover / Forgotten Favorites)
+                HomeShelfSectionPlaceholder(titleWidth = 190.dp, subtitleWidth = 110.dp)
 
-              // 3. Generic Row Skeleton
-              TextPlaceholder(
-                height = 36.dp,
-                modifier = Modifier.padding(12.dp).width(250.dp),
-              )
-              Row(
-                modifier =
-                  Modifier.horizontalScroll(rememberScrollState())
-                    .padding(
-                      WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues()
-                    )
-              ) {
-                repeat(4) { GridItemPlaceHolder() }
+                // 3. Another shelf section skeleton (e.g. Community Playlists / Albums)
+                HomeShelfSectionPlaceholder(titleWidth = 150.dp, subtitleWidth = null)
+              } else {
+                // Continuation / pagination loading indicator at bottom
+                HomeShelfSectionPlaceholder(titleWidth = 170.dp, subtitleWidth = 100.dp)
               }
             }
           }

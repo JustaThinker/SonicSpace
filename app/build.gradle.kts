@@ -114,9 +114,9 @@ android {
       val apkOutput = output as? com.android.build.gradle.api.ApkVariantOutput
       val abiFilter = output.filters.find { it.filterType == com.android.build.OutputFile.ABI }?.identifier
       val newName = when (abiFilter) {
-        "armeabi-v7a" -> "app-arm32-release.apk"
-        "arm64-v8a" -> "app-arm64-release.apk"
-        null -> "app-universal-release.apk"
+        "armeabi-v7a" -> "SonicSpace-arm32.apk"
+        "arm64-v8a" -> "SonicSpace-arm64.apk"
+        null -> "SonicSpace-universal.apk"
         else -> null
       }
       if (newName != null && buildType.name == "release") {

@@ -357,9 +357,9 @@ fun ImmersivePageLayout(
 fun WelcomePage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.icon,
-        imageScale = 1.6f,
-        iconTint = Color.Unspecified
+        drawableRes = R.drawable.ic_launcher_foreground,
+        imageScale = 1.4f,
+        iconTint = MaterialTheme.colorScheme.onSurface
     ) {
         Text(
             text = "Welcome\nto SonicSpace.",
@@ -399,9 +399,8 @@ fun WelcomePage(pageOffsetProvider: () -> Float) {
 fun EcosystemPage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.ic_echo_brain,
-        imageScale = 1.2f,
-        iconTint = MaterialTheme.colorScheme.primary
+        drawableRes = R.drawable.music_note,
+        iconTint = MaterialTheme.colorScheme.onSurface
     ) {
         Text(
             text = "Your\nComplete\nEcosystem.",
