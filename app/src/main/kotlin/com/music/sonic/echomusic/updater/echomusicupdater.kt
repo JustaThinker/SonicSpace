@@ -585,7 +585,7 @@ fun saveUpdateAvailableState(context: Context, available: Boolean) {
 
 fun getAutoUpdateCheckSetting(context: Context): Boolean {
   val sharedPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-  return sharedPrefs.getBoolean(KEY_AUTO_UPDATE_CHECK, false)
+  return sharedPrefs.getBoolean(KEY_AUTO_UPDATE_CHECK, true)
 }
 
 fun saveAutoUpdateCheckSetting(context: Context, enabled: Boolean) {
@@ -636,24 +636,24 @@ private fun formatGitHubDate(githubDate: String): String =
   }
 
 fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
-  val latestVersionClean = latestVersion.removePrefix("b").removePrefix("v")
-  val currentVersionClean = currentVersion.removePrefix("b").removePrefix("v")
+  val cleanRegex = Regex("[^0-9.]")
+  val latestVersionClean = latestVersion.removePrefix("b").removePrefix("v").trim()
+  val currentVersionClean = currentVersion.removePrefix("b").removePrefix("v").trim()
 
-  val latestParts = latestVersionClean.split(".").map { it.toIntOrNull() ?: 0 }
-  val currentParts = currentVersionClean.split(".").map { it.toIntOrNull() ?: 0 }
+  val latestParts = latestVersionClean.split(".").map { cleanRegex.replace(it, "").toIntOrNull() ?: 0 }
+  val currentParts = currentVersionClean.split(".").map { cleanRegex.replace(it, "").toIntOrNull() ?: 0 }
 
-  for (i in 0 until maxOf(latestParts.size, currentParts.size)) {
+  val maxLen = maxOf(latestParts.size, currentParts.size)
+  for (i in 0 until maxLen) {
     val latest = latestParts.getOrElse(i) { 0 }
     val current = currentParts.getOrElse(i) { 0 }
-    when {
-      latest > current -> return true
-      latest < current -> return false
-    }
+    if (latest > current) return true
+    if (latest < current) return false
   }
 
   if (latestVersionClean == currentVersionClean) {
-    val latestIsBeta = latestVersion.startsWith("b")
-    val currentIsBeta = currentVersion.startsWith("b")
+    val latestIsBeta = latestVersion.startsWith("b", ignoreCase = true)
+    val currentIsBeta = currentVersion.startsWith("b", ignoreCase = true)
 
     if (currentIsBeta && !latestIsBeta) return true
   }
@@ -679,7 +679,13 @@ suspend fun checkForUpdate(
   withContext(Dispatchers.IO) {
     try {
       val url = URL("https://api.github.com/repos/JustaThinker/SonicSpace/releases/latest")
-      val json = url.openStream().bufferedReader().use { it.readText() }
+      val connection = (url.openConnection() as java.net.HttpURLConnection).apply {
+        setRequestProperty("User-Agent", "SonicSpace")
+        setRequestProperty("Accept", "application/vnd.github+json")
+        connectTimeout = 15_000
+        readTimeout = 15_000
+      }
+      val json = connection.inputStream.bufferedReader().use { it.readText() }
       val targetRelease = JSONObject(json)
 
       val currentVersion = BuildConfig.VERSION_NAME
@@ -698,7 +704,13 @@ suspend fun checkForUpdate(
             URL(
               "https://github.com/JustaThinker/SonicSpace/releases/download/$tagWithPrefix/changelog.json"
             )
-          val changelogJson = changelogUrl.openStream().bufferedReader().use { it.readText() }
+          val changelogConn = (changelogUrl.openConnection() as java.net.HttpURLConnection).apply {
+            setRequestProperty("User-Agent", "SonicSpace")
+            setRequestProperty("Accept", "application/json")
+            connectTimeout = 15_000
+            readTimeout = 15_000
+          }
+          val changelogJson = changelogConn.inputStream.bufferedReader().use { it.readText() }
           val changelogData = JSONObject(changelogJson)
 
           description = changelogData.optString("description").takeIf { it.isNotEmpty() }
@@ -732,7 +744,7 @@ suspend fun checkForUpdate(
 
         val publishedAt = targetRelease.getString("published_at")
         val formattedReleaseDate = formatGitHubDate(publishedAt)
-        val assets = targetRelease.getJSONArray("assets")
+        val assets = targetRelease.optJSONArray("assets") ?: org.json.JSONArray()
 
         var apkSizeInMB = ""
         var apkDownloadUrl = ""
@@ -750,21 +762,26 @@ suspend fun checkForUpdate(
           }
         }
 
-        if (apkDownloadUrl.isNotEmpty()) {
-          withContext(Dispatchers.Main) {
-            onSuccess(
-              displayTag,
-              true,
-              changelogList,
-              apkSizeInMB,
-              formattedReleaseDate,
-              description,
-              imageUrl,
-              apkDownloadUrl
-            )
-          }
-          return@withContext
+        if (apkDownloadUrl.isEmpty()) {
+          apkDownloadUrl = targetRelease.optString(
+            "html_url",
+            "https://github.com/JustaThinker/SonicSpace/releases/latest"
+          )
         }
+
+        withContext(Dispatchers.Main) {
+          onSuccess(
+            displayTag,
+            true,
+            changelogList,
+            apkSizeInMB,
+            formattedReleaseDate,
+            description,
+            imageUrl,
+            apkDownloadUrl
+          )
+        }
+        return@withContext
       }
 
       withContext(Dispatchers.Main) {
@@ -799,8 +816,10 @@ data class WhatsNewInfo(
  * setting them can hang this Dispatchers.IO call indefinitely on a stalled request.
  */
 private fun openTimedStream(url: String): java.io.InputStream =
-  (URL(url).openConnection() as java.net.URLConnection)
+  (URL(url).openConnection() as java.net.HttpURLConnection)
     .apply {
+      setRequestProperty("User-Agent", "SonicSpace")
+      setRequestProperty("Accept", "application/vnd.github+json")
       connectTimeout = 15_000
       readTimeout = 15_000
     }

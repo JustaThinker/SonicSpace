@@ -33,17 +33,19 @@ class MoodAndGenresViewModel @Inject constructor() : ViewModel() {
   private fun loadCategoryArtworks(list: List<MoodAndGenres>) {
     viewModelScope.launch(Dispatchers.IO) {
       list.flatMap { it.items }.forEach { item ->
-        val key = "${item.endpoint.browseId}|${item.endpoint.params}"
-        if (!_moodGenreArtworks.value.containsKey(key)) {
-          val artwork =
-            YouTube.browse(item.endpoint.browseId, item.endpoint.params)
-              .getOrNull()
-              ?.items
-              ?.flatMap { it.items }
-              ?.firstNotNullOfOrNull { it.thumbnail }
+        launch {
+          val key = "${item.endpoint.browseId}|${item.endpoint.params}"
+          if (!_moodGenreArtworks.value.containsKey(key)) {
+            val artwork =
+              YouTube.browse(item.endpoint.browseId, item.endpoint.params)
+                .getOrNull()
+                ?.items
+                ?.flatMap { it.items }
+                ?.firstNotNullOfOrNull { it.thumbnail }
 
-          if (!artwork.isNullOrBlank()) {
-            _moodGenreArtworks.value = _moodGenreArtworks.value + (key to artwork)
+            if (!artwork.isNullOrBlank()) {
+              _moodGenreArtworks.value = _moodGenreArtworks.value + (key to artwork)
+            }
           }
         }
       }

@@ -23,6 +23,7 @@ import com.music.sonic.constants.PureBlackKey
 import com.music.sonic.echomusic.changelog.ChangelogScreen
 import com.music.sonic.echomusic.commitscreen.CommitScreen
 import com.music.sonic.echomusic.updater.UpdateScreen
+import com.music.sonic.ui.screens.settings.UpdateSettings
 import com.music.sonic.ui.screens.ambient.AmbientModeScreen
 import com.music.sonic.ui.screens.artist.ArtistAlbumsScreen
 import com.music.sonic.ui.screens.artist.ArtistItemsScreen
@@ -455,7 +456,26 @@ fun NavGraphBuilder.navigationBuilder(
     )
   }
 
-  composable("update") { UpdateScreen(navController) }
+  composable(
+    route = "settings/update?highlightKey={highlightKey}",
+    arguments =
+      listOf(
+        navArgument("highlightKey") {
+          type = NavType.StringType
+          nullable = true
+        }
+      )
+  ) { backStackEntry ->
+    UpdateSettings(
+      navController = navController,
+      scrollBehavior = scrollBehavior,
+      highlightKey = backStackEntry.arguments?.getString("highlightKey")
+    )
+  }
+
+  composable("settings/update") { UpdateSettings(navController, scrollBehavior) }
+
+  composable("update") { UpdateSettings(navController, scrollBehavior) }
 
   composable("login") { LoginScreen(navController) }
 

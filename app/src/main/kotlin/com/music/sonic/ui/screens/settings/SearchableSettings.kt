@@ -2161,5 +2161,5 @@ fun getAllSearchableSettings(): List<SearchableSetting> {
     SearchableSetting("Patreon", "Support the developer on Patreon", "About", "settings/about"),
     SearchableSetting("UPI", "Support the developer via UPI", "About", "settings/about"),
     SearchableSetting("Discord", "Join the Echo Music community", "About", "settings/about"),
-  ).filterNot { it.route == "settings/ai" || it.route == "settings/update" || it.route.startsWith("settings/discord") || it.route == "settings/equalizer" }
+  ).filterNot { it.route == "settings/ai" || it.route.startsWith("settings/discord") || it.route == "settings/equalizer" }
 }

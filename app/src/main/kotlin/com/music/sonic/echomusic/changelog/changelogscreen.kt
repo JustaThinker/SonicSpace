@@ -70,7 +70,9 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.music.sonic.BuildConfig
 import com.music.sonic.R
+import com.music.sonic.echomusic.updater.ChangelogSection
 import com.music.sonic.ui.component.parseMarkdown
+import com.music.sonic.ui.utils.parseMarkdownToSections
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -132,62 +134,110 @@ fun ChangelogScreen(
             showingCached = true
           }
         } else {
-          val changelogUrl =
-            URL("https://github.com/JustaThinker/SonicSpace/releases/download/$tag/changelog.json")
-          val connection = changelogUrl.openConnection() as HttpURLConnection
-          connection.setRequestProperty("User-Agent", "echomusic-Changelog-App")
-          connection.setRequestProperty("Accept", "application/json")
+          var fetchedSections: List<ChangelogSection> = emptyList()
+          var fetchedDesc: String? = null
+          var fetchedImage: String? = null
+          var fetchedWarning: String? = null
+          var fetchSuccess = false
 
-          if (connection.responseCode == 200) {
-            val changelogJson = connection.inputStream.bufferedReader().use { it.readText() }
-            val changelogData = JSONObject(changelogJson)
+          // Try changelog.json asset first
+          try {
+            val changelogUrl =
+              URL("https://github.com/JustaThinker/SonicSpace/releases/download/$tag/changelog.json")
+            val connection = (changelogUrl.openConnection() as HttpURLConnection).apply {
+              setRequestProperty("User-Agent", "SonicSpace")
+              setRequestProperty("Accept", "application/json")
+              connectTimeout = 15_000
+              readTimeout = 15_000
+            }
 
-            val desc = changelogData.optString("description", null)
-            val imageUrl = changelogData.optString("image", null)
-            val warning = changelogData.optString("warning", null)
-            val changelogArray = changelogData.optJSONArray("changelog")
+            if (connection.responseCode == 200) {
+              val changelogJson = connection.inputStream.bufferedReader().use { it.readText() }
+              val changelogData = JSONObject(changelogJson)
 
-            val sections = mutableListOf<ChangelogSection>()
-            if (changelogArray != null) {
-              for (i in 0 until changelogArray.length()) {
-                val sectionObj = changelogArray.optJSONObject(i)
-                if (sectionObj != null) {
-                  val title = sectionObj.optString("title", "")
-                  val itemsArray = sectionObj.optJSONArray("items")
-                  val items = mutableListOf<String>()
-                  if (itemsArray != null) {
-                    for (j in 0 until itemsArray.length()) {
-                      items.add(itemsArray.getString(j))
+              fetchedDesc = changelogData.optString("description", null)
+              fetchedImage = changelogData.optString("image", null)
+              fetchedWarning = changelogData.optString("warning", null)
+              val changelogArray = changelogData.optJSONArray("changelog")
+
+              val sections = mutableListOf<ChangelogSection>()
+              if (changelogArray != null) {
+                for (i in 0 until changelogArray.length()) {
+                  val sectionObj = changelogArray.optJSONObject(i)
+                  if (sectionObj != null) {
+                    val title = sectionObj.optString("title", "")
+                    val itemsArray = sectionObj.optJSONArray("items")
+                    val items = mutableListOf<String>()
+                    if (itemsArray != null) {
+                      for (j in 0 until itemsArray.length()) {
+                        items.add(itemsArray.getString(j))
+                      }
                     }
-                  }
-                  if (title.isNotBlank() || items.isNotEmpty()) {
-                    sections.add(ChangelogSection(title, items))
-                  }
-                } else {
-
-                  val item = changelogArray.optString(i, "")
-                  if (item.isNotBlank()) {
-                    if (sections.isEmpty() || sections[0].title.isNotBlank()) {
-                      sections.add(0, ChangelogSection("", mutableListOf()))
+                    if (title.isNotBlank() || items.isNotEmpty()) {
+                      sections.add(ChangelogSection(title, items))
                     }
-                    (sections[0].items as MutableList<String>).add(item)
+                  } else {
+                    val item = changelogArray.optString(i, "")
+                    if (item.isNotBlank()) {
+                      if (sections.isEmpty() || sections[0].title.isNotBlank()) {
+                        sections.add(0, ChangelogSection("", mutableListOf()))
+                      }
+                      (sections[0].items as MutableList<String>).add(item)
+                    }
                   }
                 }
               }
+              fetchedSections = sections
+              fetchSuccess = true
             }
+          } catch (e: Exception) {
+            fetchSuccess = false
+          }
 
-            saveChangelogToCache(context, tag, sections, imageUrl, desc, warning)
+          // Fallback to release body if changelog.json wasn't found
+          if (!fetchSuccess) {
+            try {
+              val relUrl = URL("https://api.github.com/repos/JustaThinker/SonicSpace/releases")
+              val relConn = (relUrl.openConnection() as HttpURLConnection).apply {
+                setRequestProperty("User-Agent", "SonicSpace")
+                setRequestProperty("Accept", "application/vnd.github+json")
+                connectTimeout = 15_000
+                readTimeout = 15_000
+              }
+              if (relConn.responseCode == 200) {
+                val relJson = relConn.inputStream.bufferedReader().use { it.readText() }
+                val relArray = JSONArray(relJson)
+                val cleanTag = tag.removePrefix("v").trim()
+                for (i in 0 until relArray.length()) {
+                  val rObj = relArray.getJSONObject(i)
+                  val rTag = rObj.getString("tag_name").removePrefix("v").trim()
+                  if (rTag.equals(cleanTag, ignoreCase = true)) {
+                    val body = rObj.optString("body", "")
+                    val (desc, parsedSecs) = parseMarkdownToSections(body)
+                    fetchedDesc = desc
+                    fetchedSections = parsedSecs
+                    fetchSuccess = true
+                    break
+                  }
+                }
+              }
+            } catch (e: Exception) {
+              Log.e("ChangelogScreen", "Error fetching fallback release body: ${e.message}")
+            }
+          }
+
+          if (fetchSuccess && (fetchedSections.isNotEmpty() || !fetchedDesc.isNullOrBlank())) {
+            saveChangelogToCache(context, tag, fetchedSections, fetchedImage, fetchedDesc, fetchedWarning)
             withContext(Dispatchers.Main) {
-              changelogSections = sections
-              updateImage = imageUrl.takeIf { !it.isNullOrBlank() }
-              updateDescription = desc.takeIf { !it.isNullOrBlank() }
-              updateWarning = warning.takeIf { !it.isNullOrBlank() }
+              changelogSections = fetchedSections
+              updateImage = fetchedImage?.takeIf { it.isNotBlank() }
+              updateDescription = fetchedDesc?.takeIf { it.isNotBlank() }
+              updateWarning = fetchedWarning?.takeIf { it.isNotBlank() }
               isLoading = false
               hasError = false
               showingCached = false
             }
           } else {
-            Log.e("ChangelogScreen", "HTTP Error ${connection.responseCode} for $tag")
             withContext(Dispatchers.Main) {
               hasError = true
               isLoading = false
@@ -210,9 +260,12 @@ fun ChangelogScreen(
     coroutineScope.launch(Dispatchers.IO) {
       try {
         val releasesUrl = URL("https://api.github.com/repos/JustaThinker/SonicSpace/releases")
-        val connection = releasesUrl.openConnection() as HttpURLConnection
-        connection.setRequestProperty("User-Agent", "echomusic-Changelog-App")
-        connection.setRequestProperty("Accept", "application/vnd.github+json")
+        val connection = (releasesUrl.openConnection() as HttpURLConnection).apply {
+          setRequestProperty("User-Agent", "SonicSpace")
+          setRequestProperty("Accept", "application/vnd.github+json")
+          connectTimeout = 15_000
+          readTimeout = 15_000
+        }
 
         if (connection.responseCode == 200) {
           val json = connection.inputStream.bufferedReader().use { it.readText() }
@@ -223,8 +276,6 @@ fun ChangelogScreen(
           for (i in 0 until array.length()) {
             val obj = array.getJSONObject(i)
             val tagName = obj.getString("tag_name")
-            if (!tagName.startsWith("v", ignoreCase = true)) continue
-
             val name = obj.optString("name", tagName)
             val publishedAt = obj.getString("published_at")
             val formattedDate =
@@ -234,19 +285,7 @@ fun ChangelogScreen(
                 publishedAt
               }
 
-            val assets = obj.getJSONArray("assets")
-            var changelogUrl: String? = null
-            for (j in 0 until assets.length()) {
-              val asset = assets.getJSONObject(j)
-              if (asset.getString("name") == "changelog.json") {
-                changelogUrl = asset.getString("browser_download_url")
-                break
-              }
-            }
-
-            if (changelogUrl != null) {
-              list.add(ReleaseMetadata(tagName, name, formattedDate, null))
-            }
+            list.add(ReleaseMetadata(tagName, name, formattedDate, null))
           }
           withContext(Dispatchers.Main) {
             val currentVersion =
@@ -501,8 +540,6 @@ fun ChangelogScreen(
     }
   }
 }
-
-data class ChangelogSection(val title: String, val items: List<String>)
 
 data class ReleaseMetadata(
   val tagName: String,

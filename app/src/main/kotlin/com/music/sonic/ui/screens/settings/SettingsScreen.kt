@@ -59,9 +59,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.music.sonic.BuildConfig
 import com.music.sonic.LocalPlayerAwareWindowInsets
 import com.music.sonic.R
+import com.music.sonic.echomusic.updater.getUpdateAvailableState
 import com.music.sonic.ui.component.getSettingsSegmentedShape
+import kotlinx.coroutines.launch
 
 @Composable
 private fun SettingsCategoryItem(
@@ -139,6 +150,7 @@ fun SettingsScreen(
 ) {
   var searchQuery by rememberSaveable { mutableStateOf("") }
   val searchLower = searchQuery.lowercase()
+  val context = LocalContext.current
 
   val accountText = stringResource(R.string.account)
   val appearanceText = stringResource(R.string.appearance)
@@ -303,6 +315,23 @@ fun SettingsScreen(
                 )
               },
               onClick = { navController.navigate("settings/privacy") }
+            )
+          },
+          {
+            val isUpdateAvailable = remember { getUpdateAvailableState(context) }
+            SettingsCategoryItem(
+              title = stringResource(R.string.app_updates_title),
+              subtitle = if (isUpdateAvailable) stringResource(R.string.update_available)
+              else "v${BuildConfig.VERSION_NAME} • ${stringResource(R.string.app_update_uptodate)}",
+              icon = {
+                Icon(
+                  painter = painterResource(R.drawable.update),
+                  contentDescription = null,
+                  tint = if (isUpdateAvailable) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer,
+                  modifier = Modifier.size(26.dp)
+                )
+              },
+              onClick = { navController.navigate("settings/update") }
             )
           },
           {

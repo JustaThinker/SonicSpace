@@ -43,7 +43,7 @@ constructor(
             }
           }
         }
-        explorePage.value =
+        val exploreData =
           page.copy(
             newReleaseAlbums =
               page.newReleaseAlbums
@@ -61,8 +61,33 @@ constructor(
                 }
                 .filterExplicit(context.dataStore.get(HideExplicitKey, false)),
           )
+        explorePage.value = exploreData
+        loadMoodAndGenresArtworks(exploreData.moodAndGenres)
       }
       .onFailure { reportException(it) }
+  }
+
+  private fun loadMoodAndGenresArtworks(moodAndGenres: List<com.music.innertube.pages.MoodAndGenres.Item>) {
+    viewModelScope.launch(Dispatchers.IO) {
+      val itemsList = moodAndGenres.toMutableList()
+      moodAndGenres.forEachIndexed { index, item ->
+        launch {
+          val artwork =
+            YouTube.browse(item.endpoint.browseId, item.endpoint.params)
+              .getOrNull()
+              ?.items
+              ?.flatMap { it.items }
+              ?.firstNotNullOfOrNull { it.thumbnail }
+
+          if (!artwork.isNullOrBlank()) {
+            synchronized(itemsList) {
+              itemsList[index] = item.copy(thumbnailUrl = artwork)
+              explorePage.value = explorePage.value?.copy(moodAndGenres = itemsList.toList())
+            }
+          }
+        }
+      }
+    }
   }
 
   init {

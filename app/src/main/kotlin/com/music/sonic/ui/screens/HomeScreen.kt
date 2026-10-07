@@ -118,6 +118,7 @@ import com.music.sonic.constants.GridItemsSizeKey
 import com.music.sonic.constants.GridThumbnailHeight
 import com.music.sonic.constants.InnerTubeCookieKey
 import com.music.sonic.constants.ListItemHeight
+import com.music.sonic.ui.component.MoodAndGenreCard
 import com.music.sonic.constants.ListThumbnailSize
 import com.music.sonic.constants.ShowSpeedDialKey
 import com.music.sonic.constants.SmallGridThumbnailHeight
@@ -1941,12 +1942,12 @@ fun HomeScreen(
                     modifier =
                       Modifier.height((MoodAndGenresButtonHeight + 12.dp) * 4 + 12.dp).padding(bottom = 16.dp).animateItem()
                   ) {
-                    items(moodAndGenres.distinctBy { it.title }, key = { it.title }) {
-                      MoodAndGenresButton(
-                        title = it.title,
+                    items(moodAndGenres.distinctBy { it.title }, key = { it.title }) { item ->
+                      MoodAndGenreCard(
+                        item = item,
                         onClick = {
                           navController.navigate(
-                            "youtube_browse/${it.endpoint.browseId}?params=${it.endpoint.params}"
+                            "youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}"
                           )
                         },
                         modifier = Modifier.padding(6.dp).width(180.dp)

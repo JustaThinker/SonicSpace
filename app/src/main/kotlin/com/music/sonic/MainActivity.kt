@@ -515,6 +515,9 @@ class MainActivity : ComponentActivity() {
               availableUpdateDescription = description
               saveUpdateAvailableState(context, true)
               showUpdateDialog = true
+              if (getUpdateNotificationsSetting(context)) {
+                UpdateNotificationHelper.showUpdateNotification(context, tag)
+              }
             } else {
               val lastSeen = com.music.sonic.echomusic.updater.getLastSeenChangelogVersion(context)
               val current = BuildConfig.VERSION_NAME

@@ -23,7 +23,9 @@
     "Interactive genre chips now dynamically load genre song suggestions, mixes, and playlists.",
     "Differentiated song title and artist typography with distinct sizes and subtle greyish colors, and added proper vertical row spacing in list views.",
     "Redesigned Explore tab on Search screen with BitChord-inspired responsive grid and duotone category cards.",
-    "Added dynamic background artwork loading for Explore mood & genre category cards."
+    "Added dynamic background artwork loading for Explore mood & genre category cards.",
+    "Enlarged app logo on onboarding welcome page and updated ecosystem page icon.",
+    "Added parallel concurrent artwork loading for Explore screen and Home screen Mood & Genre items."
   ],
   "bug_fixes": [
     "Matched local History date banner color to remote History.",
@@ -31,6 +33,8 @@
     "Fixed unresolved reference error for aspectRatio in HomeScreen.kt.",
     "Adjusted category chip row spacing and faded borders for a cleaner Home screen layout.",
     "Removed legacy Nothing OS branding references across all documentation and project files.",
-    "Cleaned up README.md by removing emojis and the build/setup section."
+    "Cleaned up README.md by removing emojis and the build/setup section.",
+    "Fixed ChangelogSection type mismatch compilation error in ChangelogScreen.",
+    "Removed redundant update cards and 'What's New' sections from Settings and Update Settings screens."
   ]
 }
