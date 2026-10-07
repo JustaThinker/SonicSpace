@@ -36,6 +36,20 @@ Built natively with **Kotlin 2.3** & **Jetpack Compose** using **Media3 (ExoPlay
 
 ---
 
+### Special Thanks & Credits
+
+SonicSpace stands on the shoulders of the open-source community. Special thanks to these projects:
+
+| Project | Contribution / Inspiration |
+| :--- | :--- |
+| **[SimpMusic](https://github.com/maxrave-dev/SimpMusic)** | YouTube Music client architecture and synchronized lyrics implementation reference |
+| **[Metrolist](https://github.com/vFS/Metrolist)** | Material You UI patterns, InnerTube playback queue handling, and audio engine inspiration |
+| **[NewPipe Extractor](https://github.com/TeamNewPipe/NewPipeExtractor)** | YouTube media extraction logic and stream parsing reference |
+| **[LRCLIB](https://lrclib.net)** | Synced lyrics database API and real-time lyric timing infrastructure |
+| **[SpatialFlow](https://github.com)** | Vector drawables and custom icon set |
+
+---
+
 ### License & Disclaimer
 
 Released under the [GNU General Public License v3.0](LICENSE). SonicSpace is an open-source client intended for personal use that accesses publicly available media endpoints. All media rights belong to their respective owners.
