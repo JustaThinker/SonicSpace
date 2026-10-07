@@ -1,0 +1,36 @@
+{
+  "features": [
+    "Added backdrop blur to the main top app bar when Liquid Glass is enabled.",
+    "Updated navigation and playback icons with SpatialFlow vector drawables.",
+    "Restyled History and album songs to match Home's unboxed track rows.",
+    "Moved artist-only recommendations below song suggestions on Home.",
+    "Reduced the main top app bar height by 5 dp.",
+    "Removed Listen Together from Home and moved Daily Discover to the top.",
+    "Restyled generated Home recommendations as square-card shelves.",
+    "Removed AI Hub and System Update from Settings.",
+    "Added Daily Discover section below New Releases on the Home screen.",
+    "Standardized Library section header font sizes and card sizes to match Home screen.",
+    "Redesigned Mood & Genre cards on Search and Explore with duotone color palettes.",
+    "Increased TopAppBar logo size by 1.5x and made 'Listen Now' title larger with ExtraBold weight.",
+    "Added 'Picked for you' recommendations section at the top of the Home feed.",
+    "Promoted Daily Discover and Community Playlists to the top of the Home feed.",
+    "Redesigned Explore screen Mood & Genre items with BitChord-inspired duotone image cards.",
+    "Added Liked Songs, Your Playlists, and Albums for You sections to Home Screen.",
+    "Restyled Picked for You as a two-page compact song shelf with square-cropped cover art.",
+    "Changed the YouTube Listen Again shelf to a two-row grid of square artwork cards.",
+    "Removed randomized Home section ordering in favor of a stable feed order.",
+    "Removed Speed Dial and Mood & Genres sections from Home.",
+    "Interactive genre chips now dynamically load genre song suggestions, mixes, and playlists.",
+    "Differentiated song title and artist typography with distinct sizes and subtle greyish colors, and added proper vertical row spacing in list views.",
+    "Redesigned Explore tab on Search screen with BitChord-inspired responsive grid and duotone category cards.",
+    "Added dynamic background artwork loading for Explore mood & genre category cards."
+  ],
+  "bug_fixes": [
+    "Matched local History date banner color to remote History.",
+    "Fixed syntax error in LibraryMixScreen.kt.",
+    "Fixed unresolved reference error for aspectRatio in HomeScreen.kt.",
+    "Adjusted category chip row spacing and faded borders for a cleaner Home screen layout.",
+    "Removed legacy Nothing OS branding references across all documentation and project files.",
+    "Cleaned up README.md by removing emojis and the build/setup section."
+  ]
+}

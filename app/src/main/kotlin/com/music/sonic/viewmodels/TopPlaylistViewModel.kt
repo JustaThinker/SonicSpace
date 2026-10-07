@@ -1,0 +1,59 @@
+package com.music.sonic.viewmodels
+
+import android.content.Context
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.music.sonic.constants.HideVideoSongsKey
+import com.music.sonic.constants.MyTopFilter
+import com.music.sonic.db.MusicDatabase
+import com.music.sonic.utils.dataStore
+import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+
+@HiltViewModel
+class TopPlaylistViewModel
+@Inject
+constructor(
+  @ApplicationContext context: Context,
+  database: MusicDatabase,
+  savedStateHandle: SavedStateHandle,
+) : ViewModel() {
+  val top = savedStateHandle.get<String>("top")!!
+
+  val topPeriod = MutableStateFlow(MyTopFilter.ALL_TIME)
+
+  @OptIn(ExperimentalCoroutinesApi::class)
+  val topSongs =
+    combine(
+        topPeriod,
+        context.dataStore.data
+          .map {
+            (try {
+              it[HideVideoSongsKey]
+            } catch (e: Exception) {
+              null
+            }) ?: false
+          }
+          .distinctUntilChanged()
+      ) { period, hideVideoSongs ->
+        period to hideVideoSongs
+      }
+      .flatMapLatest { (period, hideVideoSongs) ->
+        database.mostPlayedSongs(
+          period.toTimeMillis(),
+          top.toInt(),
+          hideVideoSongs = hideVideoSongs
+        )
+      }
+      .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+}

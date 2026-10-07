@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_pill"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Blurred Capsule/Pill Background -->
+    <ImageView
+        android:id="@+id/widget_pill_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:background="@drawable/widget_play_pill_bg"
+        android:contentDescription="@null" />
+
+    <!-- Content Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <!-- Circle Cover Art -->
+        <ImageView
+            android:id="@+id/widget_art"
+            android:layout_width="@dimen/widget_pill_art"
+            android:layout_height="@dimen/widget_pill_art"
+            android:scaleType="fitCenter"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="@string/album_art" />
+
+        <!-- Title / Artist Text -->
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="8dp"
+            android:text="@string/widget_nothing_played"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <!-- Transport Buttons Row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Like Button -->
+            <ImageView
+                android:id="@+id/widget_like"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_heart"
+                android:contentDescription="@string/like" />
+
+            <!-- Previous Button -->
+            <ImageView
+                android:id="@+id/widget_previous"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_skip_previous"
+                android:contentDescription="@string/skip_previous" />
+
+            <!-- Play/Pause Toggle -->
+            <ImageView
+                android:id="@+id/widget_toggle"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_play"
+                android:contentDescription="@string/play_pause" />
+
+            <!-- Next Button -->
+            <ImageView
+                android:id="@+id/widget_next"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_widget_skip_next"
+                android:contentDescription="@string/skip_next" />
+
+            <!-- Shuffle Button -->
+            <ImageView
+                android:id="@+id/widget_shuffle"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/shuffle"
+                android:background="@drawable/widget_transport_button"
+                android:contentDescription="@string/shuffle" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
