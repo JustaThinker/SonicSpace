@@ -42,10 +42,10 @@ SonicSpace stands on the shoulders of the open-source community. Special thanks 
 
 | Project | Contribution / Inspiration |
 | :--- | :--- |
+| **[BitChord](https://github.com/kushagrasinghx/BitChord)** | BitChord desktop & Android architecture, responsive feed design, and UI inspiration |
+| **[Echo Music](https://github.com)** | Core application initializers, updater infrastructure, and player components |
 | **[SimpMusic](https://github.com/maxrave-dev/SimpMusic)** | YouTube Music client architecture and synchronized lyrics implementation reference |
 | **[Metrolist](https://github.com/vFS/Metrolist)** | Material You UI patterns, InnerTube playback queue handling, and audio engine inspiration |
-| **[NewPipe Extractor](https://github.com/TeamNewPipe/NewPipeExtractor)** | YouTube media extraction logic and stream parsing reference |
-| **[LRCLIB](https://lrclib.net)** | Synced lyrics database API and real-time lyric timing infrastructure |
 | **[SpatialFlow](https://github.com)** | Vector drawables and custom icon set |
 
 ---
