@@ -28,6 +28,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -1170,8 +1171,9 @@ class MainActivity : ComponentActivity() {
                       if (navBackStackEntry?.destination?.route == Screens.Home.route) {
                         Image(
                           painter = painterResource(R.drawable.ic_launcher_foreground),
-                          contentDescription = "Echo Music Logo",
-                          modifier = Modifier.size(48.dp),
+                          contentDescription = "SonicSpace Logo",
+                          colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
+                          modifier = Modifier.size(44.dp),
                         )
                       } else if (currentTitle.isNotEmpty()) {
                         Text(

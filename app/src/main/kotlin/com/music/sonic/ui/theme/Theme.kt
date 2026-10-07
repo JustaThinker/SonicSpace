@@ -86,11 +86,9 @@ private fun ColorScheme.softenDynamicColors(darkTheme: Boolean): ColorScheme {
       if (l < 0.75f) {
         l = (l * 1.15f).coerceIn(0.75f, 0.88f)
       }
-    } else {
-      if (l < 0.50f) {
-        l = (l * 1.25f).coerceIn(0.50f, 0.65f)
-      }
     }
+    // Light mode: keep original lightness — Material dynamic color already provides
+    // proper contrast-safe lightness values; boosting them washes out the palette.
 
     return Color(androidx.core.graphics.ColorUtils.HSLToColor(floatArrayOf(h, s, l)))
   }
@@ -212,35 +210,41 @@ fun SpatialFlowTheme(
         val bgSat = (baseSat * 0.15f).coerceIn(0.02f, 0.10f)
 
         baseScheme.copy(
-          background = colorAt(baseHue, bgSat, 0.96f),
-          surface = colorAt(baseHue, bgSat, 0.98f),
+          background = colorAt(baseHue, bgSat, 0.97f),
+          surface = colorAt(baseHue, bgSat, 0.99f),
           surfaceContainer = colorAt(baseHue, bgSat, 0.93f),
+          surfaceContainerLow = colorAt(baseHue, bgSat, 0.95f),
+          surfaceContainerLowest = colorAt(baseHue, bgSat, 1.00f),
+          surfaceContainerHigh = colorAt(baseHue, bgSat, 0.90f),
+          surfaceContainerHighest = colorAt(baseHue, bgSat, 0.87f),
+          surfaceVariant = colorAt(baseHue, (bgSat * 1.4f).coerceAtMost(0.14f), 0.90f),
 
-          onBackground = colorAt(baseHue, bgSat, 0.10f),
-          onSurface = colorAt(baseHue, bgSat, 0.10f),
+          onBackground = colorAt(baseHue, bgSat, 0.08f),
+          onSurface = colorAt(baseHue, bgSat, 0.08f),
+          onSurfaceVariant = colorAt(baseHue, bgSat * 0.8f, 0.35f),
 
-          primary = colorAt(baseHue, primarySat, 0.52f),
-          onPrimary = colorAt(baseHue, primarySat, 0.98f),
+          primary = colorAt(baseHue, primarySat, 0.38f),
+          onPrimary = Color.White,
           primaryContainer = colorAt(baseHue, primaryContainerSat, 0.91f),
-          onPrimaryContainer = colorAt(baseHue, primaryContainerSat, 0.15f),
+          onPrimaryContainer = colorAt(baseHue, primaryContainerSat, 0.12f),
 
-          secondary = colorAt(baseHue, secondarySat, 0.54f),
-          onSecondary = colorAt(baseHue, secondarySat, 0.98f),
-          secondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.92f),
-          onSecondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.15f),
+          secondary = colorAt(baseHue, secondarySat, 0.42f),
+          onSecondary = Color.White,
+          secondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.91f),
+          onSecondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.12f),
 
-          tertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.54f),
-          onTertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.98f),
-          tertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.92f),
-          onTertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.15f),
+          tertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.42f),
+          onTertiary = Color.White,
+          tertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.91f),
+          onTertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.12f),
 
-          outline = colorAt(baseHue, bgSat, 0.50f),
+          outline = colorAt(baseHue, bgSat, 0.55f),
           outlineVariant = colorAt(baseHue, bgSat, 0.80f),
 
-          error = colorAt(0f, 0.35f, 0.55f),
-          onError = colorAt(0f, 0.35f, 0.98f),
+          error = colorAt(0f, 0.55f, 0.40f),
+          onError = Color.White,
           errorContainer = colorAt(0f, 0.35f, 0.92f),
-          onErrorContainer = colorAt(0f, 0.35f, 0.15f)
+          onErrorContainer = colorAt(0f, 0.35f, 0.12f)
         )
       }
     } else if (darkTheme && amoledEnabled) {

@@ -517,12 +517,18 @@ private fun floatingToolbarFabContentColor(pureBlack: Boolean): Color {
 
 @Composable
 private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color {
-  return MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+  return if (androidx.compose.foundation.isSystemInDarkTheme() || pureBlack)
+    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+  else
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
 }
 
 @Composable
 private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color {
-  return MaterialTheme.colorScheme.onSurface
+  return if (androidx.compose.foundation.isSystemInDarkTheme() || pureBlack)
+    MaterialTheme.colorScheme.onSurface
+  else
+    MaterialTheme.colorScheme.primary
 }
 
 @Composable

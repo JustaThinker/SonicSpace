@@ -156,9 +156,9 @@ inline fun ListItem(
         .background(
           color =
             when {
-              isActive -> MaterialTheme.colorScheme.secondaryContainer
+              isActive -> MaterialTheme.colorScheme.primaryContainer
               isSelected == true && drawHighlight ->
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
               else -> color
             }
         )
@@ -196,7 +196,8 @@ inline fun ListItem(
       Text(
         text = title,
         style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Bold,
+        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
       )
@@ -233,7 +234,7 @@ fun ListItem(
         Text(
           text = subtitle,
           style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.secondary,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
         )
@@ -273,7 +274,7 @@ fun ListItem(
       if (!subtitle.isNullOrEmpty()) {
         Text(
           text = subtitle,
-          color = MaterialTheme.colorScheme.secondary,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
           style = MaterialTheme.typography.bodySmall,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
@@ -364,7 +365,7 @@ fun GridItem(
       Text(
         text = subtitle,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.secondary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
       )
@@ -550,7 +551,8 @@ fun SongGridItem(
       Text(
         text = song.song.title,
         style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold,
+        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.basicMarquee().fillMaxWidth()
@@ -564,7 +566,7 @@ fun SongGridItem(
             makeTimeString(song.song.duration * 1000L)
           ),
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.secondary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
       )
@@ -783,7 +785,8 @@ fun AlbumGridItem(
       Text(
         text = album.album.title,
         style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold,
+        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.basicMarquee().fillMaxWidth()
@@ -793,7 +796,7 @@ fun AlbumGridItem(
       Text(
         text = album.artists.joinToString { it.name },
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.secondary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis
       )
@@ -991,7 +994,7 @@ fun PlaylistGridItem(
       Text(
         text = subtitle,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.secondary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis
       )
@@ -1206,7 +1209,8 @@ fun YouTubeGridItem(
       Text(
         text = item.title,
         style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold,
+        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         textAlign = if (item is ArtistItem) TextAlign.Center else TextAlign.Start,
@@ -1230,7 +1234,7 @@ fun YouTubeGridItem(
         Text(
           text = subtitle,
           style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.secondary,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
           maxLines = 2,
           overflow = TextOverflow.Ellipsis,
         )

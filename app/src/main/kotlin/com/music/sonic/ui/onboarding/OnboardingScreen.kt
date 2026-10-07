@@ -359,7 +359,7 @@ fun WelcomePage(pageOffsetProvider: () -> Float) {
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.ic_launcher_foreground,
         imageScale = 1.4f,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
             text = "Welcome\nto SonicSpace.",
@@ -400,7 +400,7 @@ fun EcosystemPage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.music_note,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Text(
             text = "Your\nComplete\nEcosystem.",
@@ -441,7 +441,7 @@ fun FeatureListPage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.equalizer,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -513,7 +513,7 @@ fun ThemeSelectionPage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.palette,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Text(
             text = "Style it\nyour way.",
@@ -576,7 +576,7 @@ fun ThemeSelectionPage(
                             text = label,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (themeMode == mode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (themeMode == mode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -597,7 +597,7 @@ fun NavigationStylePage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.nav_bar,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Text(
             text = "Navigate\nSeamlessly.",
@@ -673,13 +673,13 @@ fun NavigationStylePage(
                         text = "Hide Nav Labels",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Remove text labels from the bottom navigation bar.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -713,13 +713,13 @@ fun NavigationStylePage(
                         text = "Dynamic Navbar",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Compact height with bold, elevated icons.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -739,7 +739,7 @@ fun PreferencesPage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.vibration,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Text(
             text = "Sensory\nExperience.",
@@ -779,13 +779,13 @@ fun PreferencesPage(
                     text = "Music Haptics",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Adjust the intensity of beat-synced vibrations.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Slider(
@@ -814,7 +814,7 @@ fun PermissionsPage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.storage,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Text(
             text = "Enable\nPermissions.",
@@ -930,13 +930,13 @@ fun PermissionCard(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1030,7 +1030,7 @@ fun SignInPage(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.search,
         imageUrl = if (isLoggedIn) userProfileUrl else null,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1179,7 +1179,7 @@ fun FinishPage(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.search,
         imageUrl = if (isLoggedIn) userProfileUrl else null,
-        iconTint = MaterialTheme.colorScheme.onSurface
+        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

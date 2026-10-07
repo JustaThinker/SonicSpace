@@ -1577,11 +1577,16 @@ fun BottomSheetPlayer(
             if (mediaMetadata.explicit) MIcon.Explicit()
 
             if (mediaMetadata.artists.any { it.name.isNotBlank() }) {
+              val artistTextColor = if (playerBackground == PlayerBackgroundStyle.DEFAULT) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+              } else {
+                TextBackgroundColor.copy(alpha = 0.75f)
+              }
               val annotatedString = buildAnnotatedString {
                 mediaMetadata.artists.forEachIndexed { index, artist ->
                   val tag = "artist_${artist.id.orEmpty()}"
                   pushStringAnnotation(tag = tag, annotation = artist.id.orEmpty())
-                  withStyle(SpanStyle(color = TextBackgroundColor, fontSize = 16.sp)) {
+                  withStyle(SpanStyle(color = artistTextColor, fontSize = 16.sp)) {
                     append(artist.name)
                   }
                   pop()
@@ -1599,7 +1604,7 @@ fun BottomSheetPlayer(
                 var clickOffset by remember { mutableStateOf<Offset?>(null) }
                 Text(
                   text = annotatedString,
-                  style = MaterialTheme.typography.titleMedium.copy(color = TextBackgroundColor),
+                  style = MaterialTheme.typography.titleMedium.copy(color = artistTextColor),
                   maxLines = 1,
                   overflow = TextOverflow.Ellipsis,
                   onTextLayout = { layoutResult = it },

@@ -1165,10 +1165,20 @@ fun HomeScreen(
   ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
       val screenMaxWidth = maxWidth
-      val color1 = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-      val color2 = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
-      val color3 = MaterialTheme.colorScheme.secondary.copy(alpha = 0.04f)
-      val backgroundColor = if (isSystemInDarkTheme()) Color(0xFF121212) else Color(0xFFFAFAFA)
+      val isDarkTheme = isSystemInDarkTheme()
+      val color1 = if (isDarkTheme)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+      else
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
+      val color2 = if (isDarkTheme)
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+      else
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.03f)
+      val color3 = if (isDarkTheme)
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.04f)
+      else
+        Color.Transparent
+      val backgroundColor = if (isDarkTheme) Color(0xFF121212) else MaterialTheme.colorScheme.background
 
       val gradientAlpha by animateFloatAsState(
         targetValue = if (isLoading && homePage == null) 0f else 1f,
