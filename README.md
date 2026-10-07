@@ -15,19 +15,18 @@
 
 ### Overview
 
-**SonicSpace** is a native Android music app crafted in Kotlin and Jetpack Compose. It gives you access to the full YouTube Music catalog completely ad-free, paired with offline downloads, real-time synced lyrics, and instant Spotify playlist imports.
+**SonicSpace** is a native Android music app crafted in Kotlin and Jetpack Compose. It gives you access to the full YouTube Music catalog completely ad-free, paired with offline downloads, real-time synced lyrics.
 
-Built around a clean, high-contrast visual identity, SonicSpace strips away algorithmic clutter in favor of smooth navigation, frosted glass aesthetics, and deep sound customization.
+Built around a clean, high-contrast visual identity, SonicSpace strips away algorithmic clutter in favor of smooth navigation, and deep sound customization.
 
 ---
 
 ### Highlights
 
 * **Ad-Free & Offline** — Stream any track without ads, play local files, and download music for offline listening.
-* **Minimalist UI** — High-contrast design language built with Jetpack Compose, dynamic Material You color schemes, and optional Liquid Glass translucent blurs.
-* **Synced Lyrics & AI Translation** — Live synchronized lyrics sourced across multiple providers, complete with instant AI translation into your language.
-* **Spotify Fast Sync** — Effortlessly import and synchronize your Spotify playlists with a single tap.
-* **Listen Together & Echo Find** — Host real-time synced listening sessions with friends or identify songs playing around you.
+* **Minimalist UI** — High-contrast design language built with Jetpack Compose, dynamic Material You color schemes.
+* **Youtube Sync** — Effortlessly import and synchronize your Youtube favorites with a single tap.
+* **Listen Together** — Host real-time synced listening sessions with friends.
 
 ---
 
