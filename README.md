@@ -36,7 +36,7 @@ Built natively with **Kotlin 2.3** & **Jetpack Compose** using **Media3 (ExoPlay
 
 ---
 
-### Special Thanks & Credits
+### Credits
 
 SonicSpace stands on the shoulders of the open-source community. Special thanks to these projects:
 
