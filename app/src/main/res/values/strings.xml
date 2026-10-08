@@ -568,6 +568,12 @@
     <string name="nav_bar_style">Navigation Bar Style</string>
     <string name="floating_nav_bar">Floating navigation bar</string>
     <string name="floating_nav_bar_desc">Floating tab bar that shrinks while scrolling</string>
+    <string name="hide_nav_labels">Hide nav labels</string>
+    <string name="hide_nav_labels_desc">Remove text labels from the bottom navigation bar</string>
+    <string name="dynamic_nav_style">Dynamic navbar</string>
+    <string name="dynamic_nav_style_desc">Compact height with bold, elevated icons</string>
+    <string name="vibration_strength">Haptic intensity</string>
+    <string name="vibration_strength_desc">Adjust vibration strength for touches and gestures</string>
     <string name="color_picker_hex">Hex</string>
     <string name="color_white">White</string>
     <string name="color_light_gray">Light Gray</string>

@@ -2,8 +2,10 @@ package com.music.sonic.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,24 +70,28 @@ private val SHELF_CARD_WIDTH = 148.dp
 
 @Composable
 fun ReplayBanner(onClick: () -> Unit) {
+  val isDark = isSystemInDarkTheme()
+  val bannerColors = if (isDark) {
+    listOf(Color(0xFF1E3C72), Color(0xFF2A5298))
+  } else {
+    listOf(Color(0xFF3B68A6), Color(0xFF5582BF))
+  }
   Box(
     Modifier
       .padding(horizontal = 16.dp, vertical = 6.dp)
       .fillMaxWidth()
       .clip(RoundedCornerShape(18.dp))
+      .border(
+        width = 0.75.dp,
+        color = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.06f),
+        shape = RoundedCornerShape(18.dp)
+      )
       .clickable(onClick = onClick)
   ) {
     Box(
       Modifier
         .matchParentSize()
-        .background(
-          Brush.horizontalGradient(
-            listOf(
-              Color(0xFF1E3C72),
-              Color(0xFF2A5298)
-            )
-          )
-        )
+        .background(Brush.horizontalGradient(bannerColors))
     ) {
       Box(
         Modifier
@@ -93,8 +99,8 @@ fun ReplayBanner(onClick: () -> Unit) {
           .background(
             Brush.horizontalGradient(
               listOf(
-                Color.Black.copy(alpha = 0.34f),
-                Color.Black.copy(alpha = 0.12f),
+                Color.Black.copy(alpha = if (isDark) 0.34f else 0.18f),
+                Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
                 Color.Transparent
               )
             )
@@ -140,6 +146,7 @@ fun NewShelfCard(
   onClick: () -> Unit,
   modifier: Modifier = Modifier.width(SHELF_CARD_WIDTH)
 ) {
+  val shape = RoundedCornerShape(12.dp)
   Column(
     modifier = modifier.clickable(onClick = onClick)
   ) {
@@ -147,15 +154,20 @@ fun NewShelfCard(
       modifier = Modifier
         .fillMaxWidth()
         .aspectRatio(1f)
-        .clip(RoundedCornerShape(12.dp))
-        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        .clip(shape)
+        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        .border(
+          width = 0.75.dp,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+          shape = shape
+        ),
       contentAlignment = Alignment.Center
     ) {
       Icon(
         painter = painterResource(R.drawable.add),
         contentDescription = null,
         tint = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.size(34.dp)
+        modifier = Modifier.size(32.dp)
       )
     }
     Spacer(Modifier.height(8.dp))
@@ -198,7 +210,12 @@ fun LibraryShelfCard(
         .fillMaxWidth()
         .aspectRatio(1f)
         .clip(shape)
-        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        .border(
+          width = 0.75.dp,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+          shape = shape
+        ),
       contentAlignment = Alignment.Center
     ) {
       if (thumbnailUrl != null) {
@@ -215,8 +232,8 @@ fun LibraryShelfCard(
         Icon(
           painter = painterResource(R.drawable.library_music),
           contentDescription = null,
-          tint = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.size(40.dp)
+          tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+          modifier = Modifier.size(36.dp)
         )
       }
     }
@@ -265,6 +282,7 @@ fun OnDeviceCard(
   onClick: () -> Unit,
   modifier: Modifier = Modifier.width(SHELF_CARD_WIDTH)
 ) {
+  val shape = RoundedCornerShape(12.dp)
   Column(
     modifier = modifier.clickable(onClick = onClick)
   ) {
@@ -272,15 +290,20 @@ fun OnDeviceCard(
       modifier = Modifier
         .fillMaxWidth()
         .aspectRatio(1f)
-        .clip(RoundedCornerShape(12.dp))
-        .background(Brush.horizontalGradient(colors)),
+        .clip(shape)
+        .background(Brush.horizontalGradient(colors))
+        .border(
+          width = 0.75.dp,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+          shape = shape
+        ),
       contentAlignment = Alignment.Center
     ) {
       Icon(
         painter = painterResource(iconRes),
         contentDescription = null,
-        tint = Color.White,
-        modifier = Modifier.size(40.dp)
+        tint = Color.White.copy(alpha = 0.95f),
+        modifier = Modifier.size(36.dp)
       )
     }
     Spacer(Modifier.height(8.dp))
@@ -400,6 +423,23 @@ fun LibraryMixScreen(
       }
 
       item(key = "shelf_on_device") {
+        val isDark = isSystemInDarkTheme()
+        val likedColors = if (isDark) {
+          listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121))
+        } else {
+          listOf(Color(0xFFD94D6A), Color(0xFFE86F58), Color(0xFFEF9050))
+        }
+        val downloadedColors = if (isDark) {
+          listOf(Color(0xFF1E3C72), Color(0xFF2A5298))
+        } else {
+          listOf(Color(0xFF3867A6), Color(0xFF5287CC))
+        }
+        val localColors = if (isDark) {
+          listOf(Color(0xFF134E5E), Color(0xFF71B280))
+        } else {
+          listOf(Color(0xFF2E7B74), Color(0xFF56A687))
+        }
+
         Column(Modifier.padding(bottom = 20.dp)) {
           LibrarySectionHeader(title = "On device")
           LazyRow(
@@ -410,7 +450,7 @@ fun LibraryMixScreen(
               OnDeviceCard(
                 title = stringResource(R.string.liked),
                 subtitle = "$likedSongCount ${stringResource(R.string.songs)}",
-                colors = listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)),
+                colors = likedColors,
                 iconRes = R.drawable.favorite,
                 onClick = { navController.navigate("auto_playlist/liked") }
               )
@@ -419,7 +459,7 @@ fun LibraryMixScreen(
               OnDeviceCard(
                 title = stringResource(R.string.downloaded_songs),
                 subtitle = "Downloaded songs",
-                colors = listOf(Color(0xFF1E3C72), Color(0xFF2A5298)),
+                colors = downloadedColors,
                 iconRes = R.drawable.download,
                 onClick = { navController.navigate("auto_playlist/downloaded") }
               )
@@ -428,7 +468,7 @@ fun LibraryMixScreen(
               OnDeviceCard(
                 title = stringResource(R.string.local_music),
                 subtitle = stringResource(R.string.audio_files_on_device),
-                colors = listOf(Color(0xFF134E5E), Color(0xFF71B280)),
+                colors = localColors,
                 iconRes = R.drawable.library_music,
                 onClick = { navController.navigate("auto_playlist/local") }
               )

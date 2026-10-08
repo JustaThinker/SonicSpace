@@ -68,7 +68,8 @@ fun <T> SharedPreferences.observeKey(key: String, defaultValue: T): State<T> {
 val DefaultThemeColor = Color(0xFF1E88E5)
 
 private fun ColorScheme.softenDynamicColors(darkTheme: Boolean): ColorScheme {
-  fun soften(color: Color, maxSat: Float = 0.42f): Color {
+  val defaultMaxSat = if (darkTheme) 0.42f else 0.85f
+  fun soften(color: Color, maxSat: Float = defaultMaxSat): Color {
     val hsl = FloatArray(3)
     androidx.core.graphics.ColorUtils.colorToHSL(color.toArgb(), hsl)
     val h = hsl[0]
@@ -97,7 +98,7 @@ private fun ColorScheme.softenDynamicColors(darkTheme: Boolean): ColorScheme {
     primary = soften(primary),
     secondary = soften(secondary),
     tertiary = soften(tertiary),
-    error = soften(error, maxSat = 0.38f),
+    error = soften(error, maxSat = if (darkTheme) 0.38f else 0.80f),
     primaryContainer = if (darkTheme) soften(primaryContainer, maxSat = 0.35f) else primaryContainer,
     secondaryContainer = if (darkTheme) soften(secondaryContainer, maxSat = 0.30f) else secondaryContainer,
     tertiaryContainer = if (darkTheme) soften(tertiaryContainer, maxSat = 0.35f) else tertiaryContainer,
@@ -109,6 +110,7 @@ private fun ColorScheme.softenDynamicColors(darkTheme: Boolean): ColorScheme {
 @Composable
 fun SpatialFlowTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
+  amoledMode: Boolean = false,
   dynamicAlbumColor: Int? = null,
   content: @Composable () -> Unit
 ) {
@@ -116,13 +118,14 @@ fun SpatialFlowTheme(
   val prefs = remember(context) {
     context.getSharedPreferences("AppSettings", android.content.Context.MODE_PRIVATE)
   }
-  val amoledEnabled by prefs.observeKey("amoled_black", false)
+  val amoledPref by prefs.observeKey("amoled_black", false)
   val albumArtThemeEnabled by prefs.observeKey("dynamic_album_theme", true)
+  val isAmoled = amoledMode || amoledPref
 
-  val colorScheme = remember(darkTheme, amoledEnabled, albumArtThemeEnabled, dynamicAlbumColor) {
+  val colorScheme = remember(darkTheme, isAmoled, albumArtThemeEnabled, dynamicAlbumColor) {
     val baseScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      if (darkTheme) dynamicDarkColorScheme(context).softenDynamicColors(darkTheme)
-      else dynamicLightColorScheme(context).softenDynamicColors(darkTheme)
+      if (darkTheme) dynamicDarkColorScheme(context)
+      else dynamicLightColorScheme(context)
     } else {
       if (darkTheme) darkColorScheme(
         primary = Primary,
@@ -135,119 +138,11 @@ fun SpatialFlowTheme(
         onSurface = OnSurface,
         surfaceVariant = SurfaceVariant,
         onSurfaceVariant = OnSurfaceVariant
-      ).softenDynamicColors(darkTheme)
-      else lightColorScheme().softenDynamicColors(darkTheme)
+      )
+      else lightColorScheme()
     }
 
-    if (dynamicAlbumColor != null) {
-      val seedColor = Color(dynamicAlbumColor)
-      val hsl = FloatArray(3)
-      androidx.core.graphics.ColorUtils.colorToHSL(seedColor.toArgb(), hsl)
-
-      val isMonochrome = hsl[1] < 0.06f
-      val baseHue = hsl[0]
-      val rawSat = if (isMonochrome) 0f else hsl[1]
-
-      val isHarshHue = (baseHue in 0f..40f || baseHue in 320f..360f || baseHue in 70f..165f)
-      val satCap = if (isHarshHue) 0.35f else 0.42f
-      val baseSat = (rawSat * 0.45f).coerceIn(0.10f, satCap)
-
-      val primarySat = if (isMonochrome) 0f else baseSat.coerceIn(0.12f, satCap)
-      val primaryContainerSat = if (isMonochrome) 0f else (baseSat * 0.7f).coerceIn(0.08f, satCap * 0.8f)
-      val secondarySat = if (isMonochrome) 0f else (baseSat * 0.6f).coerceIn(0.08f, satCap * 0.7f)
-      val secondaryContainerSat = if (isMonochrome) 0f else (baseSat * 0.5f).coerceIn(0.06f, satCap * 0.6f)
-      val tertiarySat = if (isMonochrome) 0f else (baseSat * 0.7f).coerceIn(0.10f, satCap * 0.8f)
-      val tertiaryContainerSat = if (isMonochrome) 0f else (baseSat * 0.6f).coerceIn(0.08f, satCap * 0.7f)
-
-      fun colorAt(h: Float, s: Float, l: Float): Color {
-        return Color(
-          androidx.core.graphics.ColorUtils.HSLToColor(floatArrayOf(h, s, l))
-        )
-      }
-
-      if (darkTheme) {
-        val bgSat = (baseSat * 0.12f).coerceIn(0.02f, 0.08f)
-        val dynamicBg = colorAt(baseHue, bgSat, 0.07f)
-        val dynamicSurface = colorAt(baseHue, bgSat, 0.09f)
-        val dynamicContainer = colorAt(baseHue, bgSat, 0.12f)
-
-        baseScheme.copy(
-          background = if (amoledEnabled) Color.Black else dynamicBg,
-          surface = if (amoledEnabled) Color.Black else dynamicSurface,
-          surfaceContainer = if (amoledEnabled) Color.Black else dynamicContainer,
-          surfaceContainerLow = if (amoledEnabled) Color.Black else colorAt(baseHue, bgSat, 0.08f),
-          surfaceContainerLowest = if (amoledEnabled) Color.Black else colorAt(baseHue, bgSat, 0.05f),
-          surfaceContainerHigh = if (amoledEnabled) Color(0xFF0D0D0D) else colorAt(baseHue, bgSat, 0.15f),
-          surfaceContainerHighest = if (amoledEnabled) Color(0xFF141414) else colorAt(baseHue, bgSat, 0.18f),
-
-          onBackground = colorAt(baseHue, bgSat, 0.90f),
-          onSurface = colorAt(baseHue, bgSat, 0.90f),
-
-          primary = colorAt(baseHue, primarySat, 0.82f),
-          onPrimary = colorAt(baseHue, primarySat, 0.15f),
-          primaryContainer = colorAt(baseHue, primaryContainerSat, 0.22f),
-          onPrimaryContainer = colorAt(baseHue, primaryContainerSat, 0.92f),
-
-          secondary = colorAt(baseHue, secondarySat, 0.78f),
-          onSecondary = colorAt(baseHue, secondarySat, 0.15f),
-          secondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.20f),
-          onSecondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.88f),
-
-          tertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.78f),
-          onTertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.15f),
-          tertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.20f),
-          onTertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.88f),
-
-          outline = colorAt(baseHue, bgSat, 0.60f),
-          outlineVariant = colorAt(baseHue, bgSat, 0.30f),
-
-          error = colorAt(0f, 0.35f, 0.75f),
-          onError = colorAt(0f, 0.35f, 0.15f),
-          errorContainer = colorAt(0f, 0.35f, 0.22f),
-          onErrorContainer = colorAt(0f, 0.35f, 0.92f)
-        )
-      } else {
-        val bgSat = (baseSat * 0.15f).coerceIn(0.02f, 0.10f)
-
-        baseScheme.copy(
-          background = colorAt(baseHue, bgSat, 0.97f),
-          surface = colorAt(baseHue, bgSat, 0.99f),
-          surfaceContainer = colorAt(baseHue, bgSat, 0.93f),
-          surfaceContainerLow = colorAt(baseHue, bgSat, 0.95f),
-          surfaceContainerLowest = colorAt(baseHue, bgSat, 1.00f),
-          surfaceContainerHigh = colorAt(baseHue, bgSat, 0.90f),
-          surfaceContainerHighest = colorAt(baseHue, bgSat, 0.87f),
-          surfaceVariant = colorAt(baseHue, (bgSat * 1.4f).coerceAtMost(0.14f), 0.90f),
-
-          onBackground = colorAt(baseHue, bgSat, 0.08f),
-          onSurface = colorAt(baseHue, bgSat, 0.08f),
-          onSurfaceVariant = colorAt(baseHue, bgSat * 0.8f, 0.35f),
-
-          primary = colorAt(baseHue, primarySat, 0.38f),
-          onPrimary = Color.White,
-          primaryContainer = colorAt(baseHue, primaryContainerSat, 0.91f),
-          onPrimaryContainer = colorAt(baseHue, primaryContainerSat, 0.12f),
-
-          secondary = colorAt(baseHue, secondarySat, 0.42f),
-          onSecondary = Color.White,
-          secondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.91f),
-          onSecondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.12f),
-
-          tertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.42f),
-          onTertiary = Color.White,
-          tertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.91f),
-          onTertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.12f),
-
-          outline = colorAt(baseHue, bgSat, 0.55f),
-          outlineVariant = colorAt(baseHue, bgSat, 0.80f),
-
-          error = colorAt(0f, 0.55f, 0.40f),
-          onError = Color.White,
-          errorContainer = colorAt(0f, 0.35f, 0.92f),
-          onErrorContainer = colorAt(0f, 0.35f, 0.12f)
-        )
-      }
-    } else if (darkTheme && amoledEnabled) {
+    val finalScheme = if (darkTheme && isAmoled && !(albumArtThemeEnabled && dynamicAlbumColor != null)) {
       baseScheme.copy(
         background = Color.Black,
         surface = Color.Black,
@@ -259,6 +154,133 @@ fun SpatialFlowTheme(
       )
     } else {
       baseScheme
+    }
+
+    if (albumArtThemeEnabled && dynamicAlbumColor != null) {
+      val seedColor = Color(dynamicAlbumColor)
+      val hsl = FloatArray(3)
+      androidx.core.graphics.ColorUtils.colorToHSL(seedColor.toArgb(), hsl)
+
+      val isMonochrome = hsl[1] < 0.06f
+      val baseHue = hsl[0]
+      val baseSat = if (isMonochrome) 0f else hsl[1]
+
+      // Saturation calculations that respect monochrome
+      val primarySat = if (isMonochrome) 0f else baseSat.coerceAtLeast(0.5f)
+      val primaryContainerSat = if (isMonochrome) 0f else baseSat.coerceAtLeast(0.4f)
+      val secondarySat = if (isMonochrome) 0f else (baseSat * 0.5f).coerceIn(0.2f, 0.35f)
+      val secondaryContainerSat = if (isMonochrome) 0f else (baseSat * 0.5f).coerceIn(0.15f, 0.30f)
+      val tertiarySat = if (isMonochrome) 0f else (baseSat * 0.6f).coerceIn(0.3f, 0.5f)
+      val tertiaryContainerSat = if (isMonochrome) 0f else (baseSat * 0.6f).coerceIn(0.25f, 0.45f)
+
+      fun colorAt(h: Float, s: Float, l: Float): Color {
+        return Color(
+          androidx.core.graphics.ColorUtils.HSLToColor(floatArrayOf(h, s, l))
+        )
+      }
+
+      val finalDynamicScheme = if (darkTheme) {
+        // Dark Theme Tones
+        val bgSat = (baseSat * 0.15f).coerceAtMost(0.1f)
+
+        finalScheme.copy(
+          background = colorAt(baseHue, bgSat, 0.04f),
+          onBackground = colorAt(baseHue, bgSat, 0.90f),
+
+          surface = colorAt(baseHue, bgSat, 0.06f),
+          onSurface = colorAt(baseHue, bgSat, 0.90f),
+
+          surfaceContainerLowest = colorAt(baseHue, bgSat, 0.02f),
+          surfaceContainerLow = colorAt(baseHue, bgSat, 0.08f),
+          surfaceContainer = colorAt(baseHue, bgSat, 0.12f),
+          surfaceContainerHigh = colorAt(baseHue, bgSat, 0.16f),
+          surfaceContainerHighest = colorAt(baseHue, bgSat, 0.22f),
+
+          surfaceVariant = colorAt(baseHue, bgSat, 0.28f),
+          onSurfaceVariant = colorAt(baseHue, bgSat, 0.80f),
+
+          primary = colorAt(baseHue, primarySat, 0.75f),
+          onPrimary = colorAt(baseHue, primarySat, 0.20f),
+          primaryContainer = colorAt(baseHue, primaryContainerSat, 0.25f),
+          onPrimaryContainer = colorAt(baseHue, primaryContainerSat, 0.90f),
+
+          secondary = colorAt(baseHue, secondarySat, 0.70f),
+          onSecondary = colorAt(baseHue, secondarySat, 0.20f),
+          secondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.20f),
+          onSecondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.85f),
+
+          tertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.70f),
+          onTertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.20f),
+          tertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.20f),
+          onTertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.85f),
+
+          outline = colorAt(baseHue, bgSat, 0.60f),
+          outlineVariant = colorAt(baseHue, bgSat, 0.30f),
+
+          error = colorAt(0f, 0.60f, 0.65f),
+          onError = colorAt(0f, 0.60f, 0.20f),
+          errorContainer = colorAt(0f, 0.60f, 0.25f),
+          onErrorContainer = colorAt(0f, 0.60f, 0.90f)
+        )
+      } else {
+        // Light Theme Tones
+        val bgSat = (baseSat * 0.15f).coerceAtMost(0.15f)
+
+        finalScheme.copy(
+          background = colorAt(baseHue, bgSat, 0.98f),
+          onBackground = colorAt(baseHue, bgSat, 0.10f),
+
+          surface = colorAt(baseHue, bgSat, 0.98f),
+          onSurface = colorAt(baseHue, bgSat, 0.10f),
+
+          surfaceContainerLowest = colorAt(baseHue, bgSat, 1.0f),
+          surfaceContainerLow = colorAt(baseHue, bgSat, 0.96f),
+          surfaceContainer = colorAt(baseHue, bgSat, 0.94f),
+          surfaceContainerHigh = colorAt(baseHue, bgSat, 0.90f),
+          surfaceContainerHighest = colorAt(baseHue, bgSat, 0.86f),
+
+          surfaceVariant = colorAt(baseHue, bgSat, 0.80f),
+          onSurfaceVariant = colorAt(baseHue, bgSat, 0.30f),
+
+          primary = colorAt(baseHue, primarySat, 0.40f),
+          onPrimary = colorAt(baseHue, primarySat, 0.95f),
+          primaryContainer = colorAt(baseHue, primaryContainerSat, 0.85f),
+          onPrimaryContainer = colorAt(baseHue, primaryContainerSat, 0.10f),
+
+          secondary = colorAt(baseHue, secondarySat, 0.45f),
+          onSecondary = colorAt(baseHue, secondarySat, 0.95f),
+          secondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.85f),
+          onSecondaryContainer = colorAt(baseHue, secondaryContainerSat, 0.10f),
+
+          tertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.45f),
+          onTertiary = colorAt((baseHue + 60f) % 360f, tertiarySat, 0.95f),
+          tertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.85f),
+          onTertiaryContainer = colorAt((baseHue + 60f) % 360f, tertiaryContainerSat, 0.10f),
+
+          outline = colorAt(baseHue, bgSat, 0.50f),
+          outlineVariant = colorAt(baseHue, bgSat, 0.80f),
+
+          error = colorAt(0f, 0.60f, 0.45f),
+          onError = colorAt(0f, 0.60f, 0.95f),
+          errorContainer = colorAt(0f, 0.60f, 0.85f),
+          onErrorContainer = colorAt(0f, 0.60f, 0.10f)
+        )
+      }
+
+      // AMOLED black override for dynamic theme
+      if (darkTheme && isAmoled) {
+        finalDynamicScheme.copy(
+          background = Color.Black,
+          surface = Color.Black,
+          surfaceContainerLowest = Color.Black,
+          surfaceContainerLow = Color.Black,
+          surfaceContainer = Color.Black
+        )
+      } else {
+        finalDynamicScheme
+      }
+    } else {
+      finalScheme
     }
   }
 
@@ -292,23 +314,59 @@ val ColorSaver =
 fun echomusicTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
   pureBlack: Boolean = false,
+  dynamicAlbumColor: Int? = null,
   themeColor: Color = DefaultThemeColor,
   content: @Composable () -> Unit,
 ) {
   SpatialFlowTheme(
     darkTheme = darkTheme,
-    dynamicAlbumColor = themeColor.toArgb(),
+    amoledMode = pureBlack,
+    dynamicAlbumColor = dynamicAlbumColor ?: (if (themeColor != DefaultThemeColor) themeColor.toArgb() else null),
     content = content
   )
 }
 
 fun Bitmap.extractThemeColor(): Color {
-  val colorsToPopulation =
-    Palette.from(this).maximumColorCount(8).generate().swatches.associate {
-      it.rgb to it.population
-    }
-  val rankedColors = Score.score(colorsToPopulation)
-  return Color(rankedColors.first())
+  val palette = Palette.from(this).maximumColorCount(24).generate()
+  val allSwatches = palette.swatches
+  if (allSwatches.isEmpty()) return DefaultThemeColor
+
+  val totalPopulation = allSwatches.sumOf { it.population }.coerceAtLeast(1)
+  val candidateSwatches = listOfNotNull(
+    palette.vibrantSwatch,
+    palette.darkVibrantSwatch,
+    palette.lightVibrantSwatch,
+    palette.mutedSwatch,
+    palette.darkMutedSwatch,
+    palette.lightMutedSwatch,
+    palette.dominantSwatch
+  )
+  val bestAccentSwatch = candidateSwatches.maxByOrNull { swatch ->
+    val sat = swatch.hsl[1]
+    val pop = swatch.population.toFloat() / totalPopulation.toFloat()
+    sat * (0.25f + pop)
+  }
+  val accentColor = bestAccentSwatch?.rgb
+    ?: palette.getVibrantColor(palette.getDominantColor(0xFF8338EC.toInt()))
+
+  val themeSeed = (palette.vibrantSwatch?.rgb
+    ?: palette.lightVibrantSwatch?.rgb
+    ?: palette.darkVibrantSwatch?.rgb
+    ?: bestAccentSwatch?.rgb
+    ?: palette.dominantSwatch?.rgb
+    ?: accentColor)
+
+  val seedHsl = FloatArray(3)
+  androidx.core.graphics.ColorUtils.colorToHSL(themeSeed, seedHsl)
+  val isMonochrome = seedHsl[1] < 0.06f
+
+  return if (!isMonochrome) {
+    if (seedHsl[1] < 0.35f) seedHsl[1] = 0.50f
+    if (seedHsl[2] < 0.30f) seedHsl[2] = 0.45f
+    Color(androidx.core.graphics.ColorUtils.HSLToColor(seedHsl))
+  } else {
+    Color(themeSeed)
+  }
 }
 
 fun Bitmap.extractGradientColors(): List<Color> {

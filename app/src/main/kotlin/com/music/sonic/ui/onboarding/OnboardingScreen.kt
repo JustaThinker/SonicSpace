@@ -27,6 +27,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +63,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -110,6 +114,15 @@ import com.music.sonic.R
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.datastore.preferences.core.edit
+import com.music.sonic.constants.DarkModeKey
+import com.music.sonic.constants.DynamicNavStyleKey
+import com.music.sonic.constants.EnableHapticsKey
+import com.music.sonic.constants.HasSeenOnboardingKey
+import com.music.sonic.constants.HideNavLabelsKey
+import com.music.sonic.constants.VibrationStrengthKey
+import com.music.sonic.utils.HapticFeedbackService
+import com.music.sonic.utils.dataStore
 import kotlinx.coroutines.launch
 
 @SuppressLint("MissingPermission")
@@ -133,6 +146,14 @@ fun OnboardingScreen(
     var themeMode by rememberSaveable { mutableStateOf(prefs.getString("theme_mode", "system") ?: "system") }
     var hideNavLabels by rememberSaveable { mutableStateOf(prefs.getBoolean("hide_nav_labels", false)) }
     var dynamicNavStyle by rememberSaveable { mutableStateOf(prefs.getBoolean("dynamic_nav_style", false)) }
+
+    val hapticsService = remember {
+        HapticFeedbackService(
+            context = context.applicationContext,
+            isEnabled = true,
+            strength = hapticsLevel
+        )
+    }
 
     val audioPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
     val notifPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.POST_NOTIFICATIONS else null
@@ -196,6 +217,21 @@ fun OnboardingScreen(
                             .putBoolean("hide_nav_labels", hideNavLabels)
                             .putBoolean("dynamic_nav_style", dynamicNavStyle)
                     }
+                    scope.launch {
+                        context.dataStore.edit { data ->
+                            data[HasSeenOnboardingKey] = true
+                            data[HideNavLabelsKey] = hideNavLabels
+                            data[DynamicNavStyleKey] = dynamicNavStyle
+                            data[VibrationStrengthKey] = hapticsLevel
+                            data[EnableHapticsKey] = (hapticsLevel > 0f)
+                            val darkModeVal = when (themeMode.lowercase()) {
+                                "dark" -> "ON"
+                                "light" -> "OFF"
+                                else -> "AUTO"
+                            }
+                            data[DarkModeKey] = darkModeVal
+                        }
+                    }
                     onComplete()
                 }
             )
@@ -244,6 +280,13 @@ fun OnboardingScreen(
                         onThemeChanged = {
                             themeMode = it
                             prefs.edit { putString("theme_mode", it) }
+                            val darkModeVal = when (it.lowercase()) {
+                                "dark" -> "ON"
+                                "light" -> "OFF"
+                                else -> "AUTO"
+                            }
+                            scope.launch { context.dataStore.edit { data -> data[DarkModeKey] = darkModeVal } }
+                            hapticsService.performClick(force = true)
                         }
                     )
                     6 -> NavigationStylePage(
@@ -253,10 +296,14 @@ fun OnboardingScreen(
                         onHideNavLabelsChanged = {
                             hideNavLabels = it
                             prefs.edit { putBoolean("hide_nav_labels", it) }
+                            scope.launch { context.dataStore.edit { data -> data[HideNavLabelsKey] = it } }
+                            hapticsService.performToggle(it, force = true)
                         },
                         onDynamicNavStyleChanged = {
                             dynamicNavStyle = it
                             prefs.edit { putBoolean("dynamic_nav_style", it) }
+                            scope.launch { context.dataStore.edit { data -> data[DynamicNavStyleKey] = it } }
+                            hapticsService.performToggle(it, force = true)
                         }
                     )
                     7 -> PreferencesPage(
@@ -265,15 +312,13 @@ fun OnboardingScreen(
                         onHapticsLevelChanged = {
                             hapticsLevel = it
                             prefs.edit { putFloat("vibration_strength", it) }
-                            if (it > 0 && hasHaptics && vibrator != null) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                    val amplitude = (it / 100f * 255).toInt().coerceIn(1, 255)
-                                    vibrator.vibrate(VibrationEffect.createOneShot(50, amplitude))
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    vibrator.vibrate(50)
+                            scope.launch {
+                                context.dataStore.edit { data ->
+                                    data[VibrationStrengthKey] = it
+                                    data[EnableHapticsKey] = (it > 0f)
                                 }
                             }
+                            hapticsService.previewVibration(it)
                         }
                     )
                     8 -> FinishPage(
@@ -382,7 +427,7 @@ fun WelcomePage(pageOffsetProvider: () -> Float) {
             fontWeight = FontWeight.Normal,
             fontSize = 18.sp,
             lineHeight = 28.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.graphicsLayer {
@@ -400,7 +445,7 @@ fun EcosystemPage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.music_note,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
             text = "Your\nComplete\nEcosystem.",
@@ -423,7 +468,7 @@ fun EcosystemPage(pageOffsetProvider: () -> Float) {
             fontWeight = FontWeight.Normal,
             fontSize = 18.sp,
             lineHeight = 28.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.graphicsLayer {
@@ -441,7 +486,7 @@ fun FeatureListPage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.equalizer,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -452,7 +497,7 @@ fun FeatureListPage(pageOffsetProvider: () -> Float) {
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 32.sp,
                 lineHeight = 40.sp,
-                color = MaterialTheme.colorScheme.secondary,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.graphicsLayer {
                     val offset = pageOffsetProvider()
                     translationY = offset * 20f
@@ -492,7 +537,7 @@ fun FeatureListPage(pageOffsetProvider: () -> Float) {
             style = MaterialTheme.typography.bodyLarge,
             fontSize = 16.sp,
             lineHeight = 24.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
             modifier = Modifier.graphicsLayer {
                 val offset = pageOffsetProvider()
                 translationY = offset * 80f
@@ -513,7 +558,7 @@ fun ThemeSelectionPage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.palette,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
             text = "Style it\nyour way.",
@@ -547,6 +592,10 @@ fun ThemeSelectionPage(
                     colors = CardDefaults.cardColors(
                         containerColor = if (themeMode == mode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
                     ),
+                    border = BorderStroke(
+                        width = if (themeMode == mode) 2.dp else 1.dp,
+                        color = if (themeMode == mode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 72.dp)
@@ -564,7 +613,11 @@ fun ThemeSelectionPage(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(if (themeMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent),
+                                .background(if (themeMode == mode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest)
+                                .then(
+                                    if (themeMode != mode) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                                    else Modifier
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             if (themeMode == mode) {
@@ -597,7 +650,7 @@ fun NavigationStylePage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.nav_bar,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
             text = "Navigate\nSeamlessly.",
@@ -626,24 +679,49 @@ fun NavigationStylePage(
                     alpha = 1f - kotlin.math.abs(offset * 1.5f)
                 },
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         ) {
+            val previewNavHeight by animateDpAsState(
+                targetValue = if (dynamicNavStyle) {
+                    if (hideNavLabels) 64.dp else 74.dp
+                } else {
+                    80.dp
+                },
+                label = "previewNavHeight"
+            )
+            val previewIconSize by animateDpAsState(
+                targetValue = if (dynamicNavStyle) {
+                    if (hideNavLabels) 30.dp else 24.dp
+                } else {
+                    26.dp
+                },
+                label = "previewIconSize"
+            )
+
             NavigationBar(
-                modifier = Modifier.fillMaxWidth().height(if (dynamicNavStyle) 64.dp else 80.dp),
+                modifier = Modifier.fillMaxWidth().height(previewNavHeight),
                 containerColor = Color.Transparent,
-                tonalElevation = 0.dp,
+                tonalElevation = if (dynamicNavStyle) 8.dp else 0.dp,
                 windowInsets = androidx.compose.foundation.layout.WindowInsets(0.dp)
             ) {
                 listOf("Home" to Icons.Default.Home, "Search" to Icons.Default.Search, "Library" to Icons.Default.LibraryMusic).forEachIndexed { index, item ->
-                    val labelComposable: (@Composable () -> Unit)? = if (hideNavLabels) null else {
-                        @Composable { Text(item.first) }
-                    }
+                    val isLabelVisible = !hideNavLabels
+                    val labelComposable: (@Composable () -> Unit)? = if (isLabelVisible) {
+                        @Composable {
+                            Text(
+                                item.first,
+                                maxLines = 1,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    } else null
                     NavigationBarItem(
                         selected = index == 0,
                         onClick = {},
-                        icon = { Icon(item.second, contentDescription = null) },
+                        icon = { Icon(item.second, contentDescription = null, modifier = Modifier.size(previewIconSize)) },
                         label = labelComposable,
-                        alwaysShowLabel = !hideNavLabels
+                        alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible
                     )
                 }
             }
@@ -659,7 +737,8 @@ fun NavigationStylePage(
                     alpha = 1f - kotlin.math.abs(offset * 1.5f)
                 },
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         ) {
             Row(
                 modifier = Modifier
@@ -679,7 +758,7 @@ fun NavigationStylePage(
                     Text(
                         text = "Remove text labels from the bottom navigation bar.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -699,7 +778,8 @@ fun NavigationStylePage(
                     alpha = 1f - kotlin.math.abs(offset * 1.5f)
                 },
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         ) {
             Row(
                 modifier = Modifier
@@ -719,7 +799,7 @@ fun NavigationStylePage(
                     Text(
                         text = "Compact height with bold, elevated icons.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -739,7 +819,7 @@ fun PreferencesPage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.vibration,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
             text = "Sensory\nExperience.",
@@ -768,7 +848,8 @@ fun PreferencesPage(
                     alpha = 1f - kotlin.math.abs(offset * 1.5f)
                 },
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         ) {
             Column(
                 modifier = Modifier
@@ -785,7 +866,7 @@ fun PreferencesPage(
                 Text(
                     text = "Adjust the intensity of beat-synced vibrations.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Slider(
@@ -814,7 +895,7 @@ fun PermissionsPage(
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = R.drawable.storage,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
             text = "Enable\nPermissions.",
@@ -893,6 +974,11 @@ fun PermissionCard(
             },
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(
+            1.dp,
+            if (isGranted) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        ),
         onClick = { if (!isGranted) onRequest() }
     ) {
         Row(
@@ -907,7 +993,7 @@ fun PermissionCard(
                     .size(44.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                        if (isGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -919,9 +1005,8 @@ fun PermissionCard(
                         .graphicsLayer {
                             scaleX = if (isGranted) 1.1f else 1f
                             scaleY = if (isGranted) 1.1f else 1f
-                            alpha = if (isGranted) 1f else 0.8f
                         },
-                    tint = if (isGranted) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (isGranted) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -936,7 +1021,7 @@ fun PermissionCard(
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1030,7 +1115,7 @@ fun SignInPage(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.search,
         imageUrl = if (isLoggedIn) userProfileUrl else null,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1056,6 +1141,7 @@ fun SignInPage(
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(percent = 50),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
                     modifier = Modifier.graphicsLayer {
                         val offset = pageOffsetProvider()
                         translationY = offset * -20f
@@ -1090,7 +1176,7 @@ fun SignInPage(
                 Text(
                     text = "Connect your account to sync playlists, liked songs, and preferences across all your devices.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f),
                     lineHeight = 24.sp,
                     modifier = Modifier.graphicsLayer {
                         val offset = pageOffsetProvider()
@@ -1111,6 +1197,10 @@ fun SignInPage(
                             translationY = offset * -10f
                             alpha = 1f - kotlin.math.abs(offset * 1.5f)
                         },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Icon(
@@ -1140,6 +1230,7 @@ fun SignInPage(
                             translationY = offset * -5f
                             alpha = 1f - kotlin.math.abs(offset * 1.5f)
                         },
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
@@ -1179,7 +1270,7 @@ fun FinishPage(
         pageOffsetProvider = pageOffsetProvider,
         drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.search,
         imageUrl = if (isLoggedIn) userProfileUrl else null,
-        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+        iconTint = MaterialTheme.colorScheme.primary
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1187,7 +1278,8 @@ fun FinishPage(
         ) {
             Surface(
                 shape = RoundedCornerShape(percent = 50),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
                 modifier = Modifier.graphicsLayer {
                     val offset = pageOffsetProvider()
                     translationY = offset * -30f
@@ -1236,7 +1328,7 @@ fun FinishPage(
             Text(
                 text = "Your library is fully initialized and the engine is primed. It's time to immerse yourself in the ultimate auditory experience.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f),
                 lineHeight = 24.sp,
                 modifier = Modifier.graphicsLayer {
                     val offset = pageOffsetProvider()
@@ -1288,8 +1380,9 @@ fun SetupBottomBar(
     )
 
     Surface(
-        modifier = modifier.shadow(elevation = 8.dp, shape = shape, clip = true),
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier.shadow(elevation = 10.dp, shape = shape, clip = true),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         shape = shape
     ) {
         Column(
@@ -1346,14 +1439,15 @@ fun SetupBottomBar(
                                 Icon(
                                     imageVector = Icons.Default.ArrowBack,
                                     contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Step $targetPage of ${pagerState.pageCount - 1}",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                             )
                         }
                     }
@@ -1372,10 +1466,10 @@ fun SetupBottomBar(
                     if (isFinish) {
                         ExtendedFloatingActionButton(
                             onClick = onFinishClicked,
-                            text = { Text("Start Listening") },
+                            text = { Text("Start Listening", fontWeight = FontWeight.Bold) },
                             icon = { Icon(Icons.Default.Check, contentDescription = "Finish") },
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                             elevation = FloatingActionButtonDefaults.elevation(0.dp)
                         )
                     } else {
@@ -1388,8 +1482,8 @@ fun SetupBottomBar(
                                 bottomEndPercent = animatedBottomEnd.toInt()
                             ),
                             elevation = FloatingActionButtonDefaults.elevation(0.dp),
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier
                                 .rotate(animatedRotation)
                                 .graphicsLayer { alpha = fabAlpha }

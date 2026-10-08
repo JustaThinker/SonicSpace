@@ -36,6 +36,43 @@ Built natively with **Kotlin 2.3** & **Jetpack Compose** using **Media3 (ExoPlay
 
 ---
 
+### Documentation
+
+| Guide | Description |
+| :--- | :--- |
+| **[Setup & Build Guide](docs/SETUP.md)** | Prerequisites, local environment setup, build variants, and running the app |
+| **[Design System](docs/DESIGN.md)** | Minimalist design language, Liquid Glass blur system, and UI patterns |
+| **[Contributing](docs/CONTRIBUTING.md)** | Guidelines for PRs, coding conventions, and Git workflow |
+| **[Security Policy](docs/SECURITY.md)** | Reporting vulnerabilities and security guidelines |
+| **[All Documentation](docs/README.md)** | Complete documentation hub including Privacy Policy and Release History |
+
+---
+
+### Repository Structure
+
+```
+SonicSpace/
+├── app/                  # Main Android application (UI, ViewModels, DI, navigation)
+├── modules/              # Modular architecture components
+│   ├── core/             # Shared domain models, Room database, DataStore, constants
+│   ├── playback/         # Media3/ExoPlayer playback engine and audio pipeline
+│   ├── unison/           # Cross-cutting shared utilities
+│   ├── innertube/        # YouTube Music InnerTube API client
+│   ├── shazamkit/        # Echo Find music recognition service
+│   ├── artistvideo/      # Artist video playback service
+│   ├── lyrics/           # Lyrics orchestration and AI translation
+│   ├── canvas/           # Canvas video loop background engine
+│   └── providers/        # External content source provider implementations
+│       ├── lyrics/       # Providers (betterlyrics, kugou, lrclib, paxsenix, simp, youly)
+│       └── canvas/       # Providers (applecanvas, echomusiccanvas)
+├── docs/                 # Documentation hub and developer guides
+├── scripts/              # Project maintenance and asset generation scripts
+├── assets/               # Media badges and graphics
+└── licenses/             # Open-source third-party licenses
+```
+
+---
+
 ### Credits
 
 SonicSpace stands on the shoulders of the open-source community. Special thanks to these projects:

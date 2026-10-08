@@ -33,8 +33,8 @@ android {
     applicationId = "com.music.sonic"
     minSdk = 26
     targetSdk = 36
-    versionCode = 141
-    versionName = "1.4.1"
+    versionCode = 142
+    versionName = "1.4.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     vectorDrawables.useSupportLibrary = true

@@ -64,9 +64,13 @@ import com.music.sonic.constants.DefaultOpenTabKey
 import com.music.sonic.constants.DensityScale
 import com.music.sonic.constants.DensityScaleKey
 import com.music.sonic.constants.DynamicThemeKey
+import com.music.sonic.constants.DynamicNavStyleKey
 import com.music.sonic.constants.EnableHapticsKey
 import com.music.sonic.constants.EnableHighRefreshRateKey
 import com.music.sonic.constants.EnableLyricsThumbnailPlayPauseKey
+import com.music.sonic.constants.HideNavLabelsKey
+import com.music.sonic.constants.VibrationStrengthKey
+import com.music.sonic.utils.rememberHapticFeedbackService
 import com.music.sonic.constants.GridItemSize
 import com.music.sonic.constants.GridItemsSizeKey
 import com.music.sonic.constants.HidePlayerThumbnailKey
@@ -152,6 +156,17 @@ fun AppearanceSettings(
     rememberPreference(com.music.sonic.constants.EnableHighRefreshRateKey, defaultValue = true)
   val (enableHaptics, onEnableHapticsChange) =
     rememberPreference(com.music.sonic.constants.EnableHapticsKey, defaultValue = false)
+  val (hideNavLabels, onHideNavLabelsChange) =
+    rememberPreference(HideNavLabelsKey, defaultValue = false)
+  val (dynamicNavStyle, onDynamicNavStyleChange) =
+    rememberPreference(DynamicNavStyleKey, defaultValue = false)
+  val (vibrationStrength, onVibrationStrengthChange) =
+    rememberPreference(VibrationStrengthKey, defaultValue = 80f)
+  val hapticsService =
+    rememberHapticFeedbackService(isEnabled = enableHaptics, strength = vibrationStrength)
+
+  var showVibrationStrengthDialog by rememberSaveable { mutableStateOf(false) }
+  var tempVibrationStrength by rememberSaveable { mutableFloatStateOf(vibrationStrength) }
   val (liveBlurDensity, onLiveBlurDensityChange) =
     rememberPreference(com.music.sonic.constants.LiveBlurDensityKey, defaultValue = 50f)
   val (selectedThemeColorInt) =
@@ -927,6 +942,72 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
 
     Material3SettingsGroup(
       scrollState = scrollState,
+      title = stringResource(R.string.nav_bar_style),
+      items =
+        listOf(
+          Material3SettingsItem(
+            isHighlighted = (highlightKey == stringResource(R.string.hide_nav_labels)),
+            icon = painterResource(R.drawable.nav_bar),
+            title = { Text(stringResource(R.string.hide_nav_labels)) },
+            description = { Text(stringResource(R.string.hide_nav_labels_desc)) },
+            trailingContent = {
+              Switch(
+                checked = hideNavLabels,
+                onCheckedChange = {
+                  onHideNavLabelsChange(it)
+                  hapticsService.performToggle(it)
+                },
+                thumbContent = {
+                  Icon(
+                    painter =
+                      painterResource(id = if (hideNavLabels) R.drawable.check else R.drawable.close),
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                  )
+                }
+              )
+            },
+            onClick = {
+              val next = !hideNavLabels
+              onHideNavLabelsChange(next)
+              hapticsService.performToggle(next)
+            }
+          ),
+          Material3SettingsItem(
+            isHighlighted = (highlightKey == stringResource(R.string.dynamic_nav_style)),
+            icon = painterResource(R.drawable.nav_bar),
+            title = { Text(stringResource(R.string.dynamic_nav_style)) },
+            description = { Text(stringResource(R.string.dynamic_nav_style_desc)) },
+            trailingContent = {
+              Switch(
+                checked = dynamicNavStyle,
+                onCheckedChange = {
+                  onDynamicNavStyleChange(it)
+                  hapticsService.performToggle(it)
+                },
+                thumbContent = {
+                  Icon(
+                    painter =
+                      painterResource(id = if (dynamicNavStyle) R.drawable.check else R.drawable.close),
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                  )
+                }
+              )
+            },
+            onClick = {
+              val next = !dynamicNavStyle
+              onDynamicNavStyleChange(next)
+              hapticsService.performToggle(next)
+            }
+          )
+        )
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    Material3SettingsGroup(
+      scrollState = scrollState,
       title = stringResource(id = R.string.mini_player),
       items =
         buildList {
@@ -1324,6 +1405,53 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
       )
     }
 
+    if (showVibrationStrengthDialog) {
+      DefaultDialog(
+        onDismiss = { showVibrationStrengthDialog = false },
+        buttons = {
+          TextButton(onClick = { showVibrationStrengthDialog = false }) {
+            Text(stringResource(android.R.string.cancel))
+          }
+          TextButton(
+            onClick = {
+              onVibrationStrengthChange(tempVibrationStrength)
+              showVibrationStrengthDialog = false
+            }
+          ) {
+            Text(stringResource(android.R.string.ok))
+          }
+        }
+      ) {
+        Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          modifier = Modifier.padding(16.dp)
+        ) {
+          Text(
+            text = stringResource(R.string.vibration_strength),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(bottom = 16.dp)
+          )
+
+          Text(
+            text = "${tempVibrationStrength.roundToInt()}%",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(bottom = 16.dp)
+          )
+
+          Slider(
+            value = tempVibrationStrength,
+            onValueChange = {
+              tempVibrationStrength = it
+              hapticsService.previewVibration(it)
+            },
+            valueRange = 10f..100f,
+            steps = 8,
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+      }
+    }
+
     Spacer(modifier = Modifier.height(16.dp))
 
     Material3SettingsGroup(
@@ -1553,7 +1681,7 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
       scrollState = scrollState,
       title = stringResource(R.string.misc),
       items =
-        listOf(
+        listOfNotNull(
 
           Material3SettingsItem(
             isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_add)),
@@ -1584,7 +1712,10 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
             trailingContent = {
               Switch(
                 checked = enableHaptics,
-                onCheckedChange = onEnableHapticsChange,
+                onCheckedChange = {
+                  onEnableHapticsChange(it)
+                  hapticsService.performToggle(it, force = true)
+                },
                 thumbContent = {
                   Icon(
                     painter =
@@ -1597,8 +1728,24 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
                 }
               )
             },
-            onClick = { onEnableHapticsChange(!enableHaptics) }
+            onClick = {
+              val next = !enableHaptics
+              onEnableHapticsChange(next)
+              hapticsService.performToggle(next, force = true)
+            }
           ),
+          if (enableHaptics) {
+            Material3SettingsItem(
+              isHighlighted = (highlightKey == stringResource(R.string.vibration_strength)),
+              icon = painterResource(R.drawable.vibration),
+              title = { Text(stringResource(R.string.vibration_strength)) },
+              description = { Text("${vibrationStrength.roundToInt()}%") },
+              onClick = {
+                tempVibrationStrength = vibrationStrength
+                showVibrationStrengthDialog = true
+              }
+            )
+          } else null,
           Material3SettingsItem(
             isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_remove)),
             icon = painterResource(R.drawable.swipe),

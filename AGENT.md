@@ -12,7 +12,7 @@ the agent full context without re-scanning the whole codebase every session.
 > stale context is worse than no context, because the agent will act on it
 > confidently and be wrong. Treat an out-of-date `AGENT.md` as a bug.
 
-> **Dynamic Design Pattern rule:** Whenever you make ANY changes or updates to the UI, layout, or components, you **must automatically document** the new or updated design patterns directly in this `AGENT.md` file (and `DESIGN.md` if applicable) during the same session. This ensures that the AI's context regarding the project's visual aesthetic is dynamically kept up-to-date, so future tasks follow the newly introduced patterns accurately.
+> **Dynamic Design Pattern rule:** Whenever you make ANY changes or updates to the UI, layout, or components, you **must automatically document** the new or updated design patterns directly in this `AGENT.md` file (and `docs/DESIGN.md` if applicable) during the same session. This ensures that the AI's context regarding the project's visual aesthetic is dynamically kept up-to-date, so future tasks follow the newly introduced patterns accurately.
 
 > **Attribution rule:** if a feature is ported from, adapted from, or
 > inspired by another open-source project (even partially — a UI pattern,
@@ -72,7 +72,7 @@ All UI work — new screens, new components, and edits to existing ones —
 **must** follow a **clean and minimal design** language rather than blindly
 applying standard Material Design 3 guidelines or Material You.
 
-We maintain a dedicated **[DESIGN.md](DESIGN.md)** file which serves as the central
+We maintain a dedicated **[DESIGN.md](docs/DESIGN.md)** file which serves as the central
 hub for all design decisions, component usage, and style choices in the Echo Music codebase.
 
 **Key Requirements:**
@@ -82,7 +82,7 @@ hub for all design decisions, component usage, and style choices in the Echo Mus
 - **Home shelves:** Keep song recommendations in compact, four-row horizontal pages; square cover art on Home must use forced center-crop without changing the user's global Library crop preference.
 - **Listen Again:** Render server-provided Listen Again / Keep Listening items as a two-row horizontal grid; do not convert unrelated song-only feed shelves from their compact list layout.
 
-If a new feature needs a UI pattern not covered in `DESIGN.md`, create a minimal pattern rather than pulling from the official Material 3 guidelines.
+If a new feature needs a UI pattern not covered in `docs/DESIGN.md`, create a minimal pattern rather than pulling from the official Material 3 guidelines.
 
 ### Conventions worth following
 
@@ -147,26 +147,32 @@ Package/namespace: `com.music.sonic` (app module). Application ID matches.
 
 ## Module map (multi-module Gradle project)
 
-Root `:app` depends on all of these library modules — each is a focused,
-mostly-independent feature/integration:
+Root `:app` depends on all of these library modules located in the `modules/` directory:
 
-| Module | Purpose |
-|---|---|
-| `:app` | Main application — UI, ViewModels, MusicService, DB, DI, app-level orchestration |
-| `:core` | Shared models, constants, Room database, DataStore, and common utilities |
-| `:playback` | Pure ExoPlayer/Media3 logic — Queues, Equalizer, ChunkingDataSource, SleepTimer, BeatAnalyzer |
-| `:lyrics` | Lyrics orchestration — LyricsHelper, LyricsEntry, LyricsUtils, all provider impls, AI translation |
-| `:innertube` | YouTube Music InnerTube API client (the core music source) |
-| `:kugou`, `:lrclib`, `:betterlyrics`, `:youlyplus`, `:paxsenixlyrics`, `:simpmusic` | Individual lyrics source providers (each consumed by `:lyrics`) |
-| `:shazamkit` | Music recognition ("Echo Find") |
-| `:canvas`, `:echomusiccanvas`, `:applecanvas` | Canvas-style looping video backgrounds for tracks (different providers) |
-| `:artistvideo` | Artist video features |
-| `:unison` | Cross-cutting shared utility module (check source before editing) |
+| Module | Location | Purpose |
+|---|---|---|
+| `:app` | `app/` | Main application — UI, ViewModels, MusicService, DB, DI, app-level orchestration |
+| `:core` | `modules/core/` | Shared models, constants, Room database, DataStore, and common utilities |
+| `:playback` | `modules/playback/` | Pure ExoPlayer/Media3 logic — Queues, Equalizer, ChunkingDataSource, SleepTimer, BeatAnalyzer |
+| `:lyrics` | `modules/lyrics/` | Lyrics orchestration — LyricsHelper, LyricsEntry, LyricsUtils, AI translation |
+| `:innertube` | `modules/innertube/` | YouTube Music InnerTube API client (the core music source) |
+| `:betterlyrics` | `modules/providers/lyrics/betterlyrics/` | BetterLyrics source provider |
+| `:kugou` | `modules/providers/lyrics/kugou/` | Kugou source provider |
+| `:lrclib` | `modules/providers/lyrics/lrclib/` | LRCLIB source provider |
+| `:paxsenixlyrics` | `modules/providers/lyrics/paxsenixlyrics/` | Paxsenix source provider |
+| `:simpmusic` | `modules/providers/lyrics/simpmusic/` | SimpMusic source provider |
+| `:youlyplus` | `modules/providers/lyrics/youlyplus/` | YouLyPlus source provider |
+| `:canvas` | `modules/canvas/` | Canvas video background engine orchestration |
+| `:applecanvas` | `modules/providers/canvas/applecanvas/` | Apple Music canvas provider |
+| `:echomusiccanvas` | `modules/providers/canvas/echomusiccanvas/` | Echo Music canvas provider |
+| `:shazamkit` | `modules/shazamkit/` | Music recognition ("Echo Find") |
+| `:artistvideo` | `modules/artistvideo/` | Artist video features |
+| `:unison` | `modules/unison/` | Cross-cutting shared utility module (check source before editing) |
 
 When adding a new external integration (a new lyrics source, a new canvas
-provider, etc.), the existing pattern is: **new Gradle module**, register it
-in `settings.gradle.kts`, add it as an `implementation(project(":name"))` in
-`app/build.gradle.kts`, wire it up via Hilt in `di/`.
+provider, etc.), the pattern is: **new module under `modules/providers/`**, register it
+in `settings.gradle.kts` with `project(":name").projectDir = file(...)`, add it as an
+`implementation(project(":name"))` in `app/build.gradle.kts`, wire it up via Hilt in `di/`.
 
 ## App module internal structure
 

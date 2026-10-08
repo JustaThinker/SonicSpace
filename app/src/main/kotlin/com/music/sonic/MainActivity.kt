@@ -158,6 +158,9 @@ import com.music.sonic.constants.FloatingToolbarHorizontalPadding
 import com.music.sonic.constants.ListenTogetherInTopBarKey
 import com.music.sonic.ui.component.backdrop.backdrops.rememberLayerBackdrop
 import com.music.sonic.ui.component.GlassEffectConfig
+import com.music.sonic.utils.HapticFeedbackService
+import com.music.sonic.utils.LocalHapticFeedbackService
+import com.music.sonic.utils.rememberHapticFeedbackService
 import com.music.sonic.ui.component.GlassComponent
 import com.music.sonic.ui.component.LocalGlassEffectConfig
 import com.music.sonic.ui.component.LocalAppBackdrop
@@ -631,12 +634,27 @@ class MainActivity : ComponentActivity() {
 
     val (enableHaptics) =
       rememberPreference(com.music.sonic.constants.EnableHapticsKey, defaultValue = false)
+    val (vibrationStrength) =
+      rememberPreference(com.music.sonic.constants.VibrationStrengthKey, defaultValue = 80f)
+    val hapticFeedbackService =
+      rememberHapticFeedbackService(isEnabled = enableHaptics, strength = vibrationStrength)
     val view = LocalView.current
     var lastScrollHapticTime by remember { mutableStateOf(0L) }
+
+    val dynamicAlbumColor = remember(enableDynamicTheme, themeColor, selectedThemeColor) {
+      if (enableDynamicTheme && themeColor != DefaultThemeColor) {
+        themeColor.toArgb()
+      } else if (!enableDynamicTheme && selectedThemeColor != DefaultThemeColor) {
+        selectedThemeColor.toArgb()
+      } else {
+        null
+      }
+    }
 
     echomusicTheme(
       darkTheme = useDarkTheme,
       pureBlack = pureBlack,
+      dynamicAlbumColor = dynamicAlbumColor,
       themeColor = themeColor,
     ) {
       if (showUpdateDialog) {
@@ -665,7 +683,7 @@ class MainActivity : ComponentActivity() {
         modifier =
           Modifier.fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
-            .pointerInput(enableHaptics) {
+            .pointerInput(enableHaptics, vibrationStrength) {
               if (enableHaptics) {
                 awaitPointerEventScope {
                   while (true) {
@@ -675,11 +693,11 @@ class MainActivity : ComponentActivity() {
                     val isScroll =
                       event.changes.any { it.positionChange() != Offset.Zero && it.pressed }
                     if (isClick) {
-                      view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                      hapticFeedbackService.performClick()
                     } else if (isScroll) {
                       val currentTime = System.currentTimeMillis()
-                      if (currentTime - lastScrollHapticTime > 100) {
-                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                      if (currentTime - lastScrollHapticTime > 120) {
+                        hapticFeedbackService.performScroll()
                         lastScrollHapticTime = currentTime
                       }
                     }
@@ -761,29 +779,37 @@ class MainActivity : ComponentActivity() {
 
         val shouldShowNavigationBar =
           remember(currentRoute, navigationItemRoutes) {
-            currentRoute == null ||
-              navigationItemRoutes.contains(currentRoute) ||
-              currentRoute!!.startsWith("search/") ||
-              currentRoute!!.startsWith("album/") ||
-              currentRoute!!.startsWith("online_playlist/") ||
-              currentRoute!!.startsWith("local_playlist/") ||
-              currentRoute!!.startsWith("artist/")
+            currentRoute == null || navigationItemRoutes.contains(currentRoute)
           }
+
+        LaunchedEffect(currentRoute) {
+          if (navigationItemRoutes.contains(currentRoute)) {
+            showBottomNavWithAnimation()
+          }
+        }
 
         val isLandscape = configuration.containerDpSize.width > configuration.containerDpSize.height
 
         val showRail = isLandscape && !inSearchScreen && currentRoute != "ambient_mode"
 
+        val (hideNavLabels) = rememberPreference(HideNavLabelsKey, defaultValue = false)
+        val (dynamicNavStyle) = rememberPreference(DynamicNavStyleKey, defaultValue = false)
+        val currentNavBarHeight = if (dynamicNavStyle) {
+          if (hideNavLabels) 64.dp else 74.dp
+        } else {
+          80.dp
+        }
+
         val navPadding =
           if (shouldShowNavigationBar && !showRail) {
-            NavigationBarHeight + FloatingToolbarBottomPadding
+            currentNavBarHeight + FloatingToolbarBottomPadding
           } else {
             0.dp
           }
 
         val navigationBarHeight by
           animateDpAsState(
-            targetValue = if (shouldShowNavigationBar && !showRail) NavigationBarHeight else 0.dp,
+            targetValue = if (shouldShowNavigationBar && !showRail) currentNavBarHeight else 0.dp,
             animationSpec = NavigationBarAnimationSpec,
             label = "navBarHeight",
           )
@@ -791,16 +817,18 @@ class MainActivity : ComponentActivity() {
         val (useFloatingNavBar) = rememberPreference(UseFloatingNavBarKey, defaultValue = false)
         val floatingNavBarScrollConnection = rememberFloatingTabBarScrollConnection()
 
-        val navBarScrollConnection = remember {
+        val navBarScrollConnection = remember(isLandscape) {
           object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-              if (available.y < -12f) {
-                if (isBottomNavVisible) {
-                  hideBottomNavWithAnimation()
-                }
-              } else if (available.y > 12f) {
-                if (!isBottomNavVisible) {
-                  showBottomNavWithAnimation()
+              if (!isLandscape) {
+                if (available.y < -10f) {
+                  if (isBottomNavVisible) {
+                    hideBottomNavWithAnimation()
+                  }
+                } else if (available.y > 10f) {
+                  if (!isBottomNavVisible) {
+                    showBottomNavWithAnimation()
+                  }
                 }
               }
               return Offset.Zero
@@ -811,10 +839,18 @@ class MainActivity : ComponentActivity() {
               available: Offset,
               source: NestedScrollSource
             ): Offset {
-              if (available.y > 12f && !isBottomNavVisible) {
-                showBottomNavWithAnimation()
+              if (!isLandscape) {
+                if (consumed.y < -10f) {
+                  if (isBottomNavVisible) {
+                    hideBottomNavWithAnimation()
+                  }
+                } else if (consumed.y > 10f || available.y > 10f) {
+                  if (!isBottomNavVisible) {
+                    showBottomNavWithAnimation()
+                  }
+                }
               }
-              return Offset.Zero
+              return super.onPostScroll(consumed, available, source)
             }
           }
         }
@@ -1144,6 +1180,7 @@ class MainActivity : ComponentActivity() {
           LocalShimmerTheme provides getShimmerTheme(),
           LocalSyncUtils provides syncUtils,
           LocalListenTogetherManager provides listenTogetherManager,
+          LocalHapticFeedbackService provides hapticFeedbackService,
         ) {
           if (!hasSeenOnboarding) {
             OnboardingScreen(
@@ -1302,10 +1339,33 @@ class MainActivity : ComponentActivity() {
                   currentRoute?.startsWith("settings") != true
               ) {
                 Box {
+                  val (hideNavLabels) = rememberPreference(HideNavLabelsKey, defaultValue = false)
+                  val (dynamicNavStyle) = rememberPreference(DynamicNavStyleKey, defaultValue = false)
+
+                  val navBarHeight by animateDpAsState(
+                    targetValue = if (dynamicNavStyle) {
+                      if (hideNavLabels) 64.dp else 74.dp
+                    } else {
+                      80.dp
+                    },
+                    label = "navBarHeight"
+                  )
+                  val navIconSize by animateDpAsState(
+                    targetValue = if (dynamicNavStyle) {
+                      if (hideNavLabels) 30.dp else 24.dp
+                    } else {
+                      26.dp
+                    },
+                    label = "navIconSize"
+                  )
+                  val navElevation by animateDpAsState(
+                    targetValue = if (dynamicNavStyle) 8.dp else 3.dp,
+                    label = "navElevation"
+                  )
+
                   val showBottomBar = shouldShowNavigationBar && isBottomNavVisible
                   val navigationBarsHeightPx = WindowInsets.navigationBars.getBottom(density).toFloat()
-                  val bottomNavHeight = 80.dp
-                  val bottomNavHeightPx = with(density) { bottomNavHeight.toPx() }
+                  val bottomNavHeightPx = with(density) { navBarHeight.toPx() }
                   val totalSlideDistPx = bottomNavHeightPx + navigationBarsHeightPx
 
                   val baseTargetTranslation = if (showBottomBar) 0f else totalSlideDistPx
@@ -1330,12 +1390,6 @@ class MainActivity : ComponentActivity() {
                     }
                   )
 
-                  val (hideNavLabels) = rememberPreference(key = androidx.datastore.preferences.core.booleanPreferencesKey("hide_nav_labels"), defaultValue = false)
-                  val (dynamicNavStyle) = rememberPreference(key = androidx.datastore.preferences.core.booleanPreferencesKey("dynamic_nav_style"), defaultValue = false)
-
-                  val navBarHeight by animateDpAsState(if (dynamicNavStyle) 64.dp else 80.dp, label = "navBarHeight")
-                  val navIconSize by animateDpAsState(if (dynamicNavStyle) 34.dp else 26.dp, label = "navIconSize")
-                  val navElevation by animateDpAsState(if (dynamicNavStyle) 8.dp else 3.dp, label = "navElevation")
                   val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
                   NavigationBar(
@@ -1350,8 +1404,9 @@ class MainActivity : ComponentActivity() {
                       }
                       .height(navBarHeight + bottomPadding),
                     containerColor = if (pureBlack) Color.Black else if (useDarkTheme) Color(0xFF121212) else Color(0xFFF5F5F5),
-                    tonalElevation = 0.dp
+                    tonalElevation = navElevation
                   ) {
+                    val isLabelVisible = !hideNavLabels
                     navigationItems.forEach { screen ->
                       val selected = remember(currentRoute, screen.route) {
                         currentRoute == screen.route || currentRoute?.startsWith("${screen.route}/") == true
@@ -1359,6 +1414,7 @@ class MainActivity : ComponentActivity() {
                       NavigationBarItem(
                         selected = selected,
                         onClick = {
+                          hapticFeedbackService.performClick()
                           onNavItemClick(screen, selected)
                         },
                         icon = {
@@ -1368,16 +1424,19 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.size(navIconSize)
                           )
                         },
-                        label = if (hideNavLabels) null else {
+                        label = if (isLabelVisible) {
                           {
                             Text(
                               text = stringResource(screen.titleId),
                               maxLines = 1,
-                              overflow = TextOverflow.Ellipsis
+                              overflow = TextOverflow.Ellipsis,
+                              style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                              )
                             )
                           }
-                        },
-                        alwaysShowLabel = !hideNavLabels
+                        } else null,
+                        alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible
                       )
                     }
                   }
@@ -1542,7 +1601,10 @@ class MainActivity : ComponentActivity() {
                         it / 8
                       } + fadeOut(tween(400, easing = EmphasizedEasing))
                   },
-                  modifier = Modifier.layerBackdrop(appBackdrop).nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                  modifier =
+                    Modifier.layerBackdrop(appBackdrop)
+                      .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                      .nestedScroll(navBarScrollConnection)
                 ) {
                   navigationBuilder(
                     navController = navController,

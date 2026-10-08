@@ -24,7 +24,7 @@ crashlytics/build/
 crashlytics-empty/build/
 lastfm/build/
 lastfm-empty/build/
-*/build/
+**/build/
 
 # Gradle
 .gradle/

@@ -19,23 +19,43 @@ dependencyResolutionManagement {
 rootProject.name = "SonicSpace"
 include(
     ":app",
+    ":core",
+    ":playback",
+    ":unison",
     ":innertube",
-    ":paxsenixlyrics",
-    ":kugou",
-    ":betterlyrics",
-    ":lrclib",
-    ":simpmusic",
-    ":youlyplus",
     ":shazamkit",
     ":artistvideo",
-    ":canvas",
-    ":echomusiccanvas",
-    ":applecanvas",
-    ":unison",
-    ":core",
     ":lyrics",
-    ":playback"
+    ":betterlyrics",
+    ":kugou",
+    ":lrclib",
+    ":paxsenixlyrics",
+    ":simpmusic",
+    ":youlyplus",
+    ":canvas",
+    ":applecanvas",
+    ":echomusiccanvas"
 )
+
+// Modular architecture directory configuration
+project(":core").projectDir = file("modules/core")
+project(":playback").projectDir = file("modules/playback")
+project(":unison").projectDir = file("modules/unison")
+project(":innertube").projectDir = file("modules/innertube")
+project(":shazamkit").projectDir = file("modules/shazamkit")
+project(":artistvideo").projectDir = file("modules/artistvideo")
+project(":lyrics").projectDir = file("modules/lyrics")
+project(":canvas").projectDir = file("modules/canvas")
+
+project(":betterlyrics").projectDir = file("modules/providers/lyrics/betterlyrics")
+project(":kugou").projectDir = file("modules/providers/lyrics/kugou")
+project(":lrclib").projectDir = file("modules/providers/lyrics/lrclib")
+project(":paxsenixlyrics").projectDir = file("modules/providers/lyrics/paxsenixlyrics")
+project(":simpmusic").projectDir = file("modules/providers/lyrics/simpmusic")
+project(":youlyplus").projectDir = file("modules/providers/lyrics/youlyplus")
+
+project(":applecanvas").projectDir = file("modules/providers/canvas/applecanvas")
+project(":echomusiccanvas").projectDir = file("modules/providers/canvas/echomusiccanvas")
 
 
 // Use a local copy of BravePipe Extractor.

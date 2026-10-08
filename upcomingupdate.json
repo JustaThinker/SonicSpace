@@ -25,7 +25,13 @@
     "Redesigned Explore tab on Search screen with BitChord-inspired responsive grid and duotone category cards.",
     "Added dynamic background artwork loading for Explore mood & genre category cards.",
     "Enlarged app logo on onboarding welcome page and updated ecosystem page icon.",
-    "Added parallel concurrent artwork loading for Explore screen and Home screen Mood & Genre items."
+    "Added parallel concurrent artwork loading for Explore screen and Home screen Mood & Genre items.",
+    "Reorganized root documentation into a dedicated docs/ hub and added repository architecture map to README.",
+    "Restructured 16 submodules into a clean modules/ directory with dedicated core, features, lyrics, canvas, and providers hierarchy.",
+    "Added Navigation Bar Style options (Hide Nav Labels and Dynamic Navbar) with live toggles in Appearance settings.",
+    "Added Haptic Feedback Service with customizable vibration intensity and responsive tactile gestures.",
+    "Applied SpatialFlow navbar dimensions and scroll-hiding across screens, with root-only tab visibility.",
+    "Upgraded dynamic theme with SpatialFlow's harmonic HSL palette generator, AMOLED black integration, and rich album art seed extraction."
   ],
   "bug_fixes": [
     "Matched local History date banner color to remote History.",
@@ -36,6 +42,10 @@
     "Cleaned up README.md by removing emojis and the build/setup section.",
     "Fixed ChangelogSection type mismatch compilation error in ChangelogScreen.",
     "Removed redundant update cards and 'What's New' sections from Settings and Update Settings screens.",
-    "Fixed heightIn and maxWidth compilation errors in HomeScreen.kt."
+    "Fixed heightIn and maxWidth compilation errors in HomeScreen.kt.",
+    "Removed corrupted prompt artifacts from SECURITY.md and updated doc paths across AGENT.md.",
+    "Fixed faded and low-contrast colors across all Onboarding setup screens in Light Mode.",
+    "Fixed Onboarding navigation style and haptic intensity preferences not syncing to app DataStore.",
+    "Fixed dynamic navbar proportions and label layout to prevent cramped text overlap when labels are enabled."
   ]
 }
