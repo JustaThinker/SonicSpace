@@ -325,21 +325,6 @@ fun UpdateSettings(
               )
             },
             onClick = { navController.navigate("settings/changelog") }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.commits)),
-            icon = painterResource(R.drawable.commit),
-            title = { Text(stringResource(R.string.commits)) },
-            description = { Text(stringResource(R.string.view_commit_history)) },
-            trailingContent = {
-              Icon(
-                painter = painterResource(R.drawable.navigate_next),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(22.dp)
-              )
-            },
-            onClick = { navController.navigate("settings/commits") }
           )
         )
       )

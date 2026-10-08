@@ -442,12 +442,6 @@ fun getAllSearchableSettings(): List<SearchableSetting> {
       "settings/appearance"
     ),
     SearchableSetting(
-      stringResource(R.string.commits),
-      stringResource(R.string.commits_desc),
-      "System Update",
-      "settings/update"
-    ),
-    SearchableSetting(
       stringResource(R.string.config_proxy),
       stringResource(R.string.config_proxy_desc),
       "Content",
@@ -1705,12 +1699,6 @@ fun getAllSearchableSettings(): List<SearchableSetting> {
     SearchableSetting(
       stringResource(R.string.version),
       stringResource(R.string.version_desc),
-      "System Update",
-      "settings/update"
-    ),
-    SearchableSetting(
-      stringResource(R.string.view_commit_history),
-      stringResource(R.string.view_commit_history_desc),
       "System Update",
       "settings/update"
     ),

@@ -31,7 +31,8 @@
     "Added Navigation Bar Style options (Hide Nav Labels and Dynamic Navbar) with live toggles in Appearance settings.",
     "Added Haptic Feedback Service with customizable vibration intensity and responsive tactile gestures.",
     "Applied SpatialFlow navbar dimensions and scroll-hiding across screens, with root-only tab visibility.",
-    "Upgraded dynamic theme with SpatialFlow's harmonic HSL palette generator, AMOLED black integration, and rich album art seed extraction."
+    "Upgraded dynamic theme with SpatialFlow's harmonic HSL palette generator, AMOLED black integration, and rich album art seed extraction.",
+    "Removed Commits option from the System Update settings screen."
   ],
   "bug_fixes": [
     "Matched local History date banner color to remote History.",
