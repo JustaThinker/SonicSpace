@@ -1,60 +1,68 @@
-# Echo Music Design Guidelines
+# SonicSpace Design System & UI Guidelines
 
-Echo Music follows a **custom, modern aesthetic** that blends some Material Design principles with unique, iOS-inspired patterns. 
+SonicSpace features a distinct, modern visual identity that combines high-contrast minimalist typography with translucent **Liquid Glass** blur effects, responsive gestures, and dynamic harmonic color theming.
 
-This document is the definitive guide for designing and implementing UI in the Echo Music codebase. All new UI work and refactors must follow these custom principles rather than strictly adhering to Google's Material Design 3 spec.
-
----
-
-## 1. Color System & Theming
-
-We use a dynamic color system, but apply it in a custom way to achieve a unique look.
-
-### Dynamic Color & Seed
-*   **Dynamic First:** Colors must come from `MaterialTheme.colorScheme`, but are often modified (e.g., using alpha transparency) to create glass-like effects.
-*   **Translucency:** A core part of the Echo Music look is translucent surfaces. For example, cards often use `surfaceVariant.copy(alpha = 0.3f)` rather than solid M3 container colors.
-
-### Semantic Color Roles
-Use the correct semantic color roles as defined by our theme:
-*   **Primary (`primary` / `onPrimary`):** Used for the most prominent components across the app, active states, and filled buttons.
-*   **Surface (`surface` / `onSurface`):** Backgrounds for the app and solid menus.
-*   **Translucent Surfaces:** Custom translucent backgrounds (like `surfaceVariant.copy(alpha = 0.3f)`) are heavily used for cards, segmented buttons, and grouped lists to create a softer, layered aesthetic.
+This guide outlines the core design language, components, and patterns used throughout SonicSpace.
 
 ---
 
-## 2. Components in Detail
+## 1. Core Visual Principles
 
-Do NOT strictly force Material 3 components if they break the app's custom aesthetic. Match the existing components found in the app.
+### Minimalist & High-Contrast
+* Interfaces prioritize typography, clean album art, and content density over algorithmic fluff or distracting gradients.
+* High-contrast text pairings (`titleMedium` in bold paired with subdued `bodySmall` in greyish tones) make song rows and metadata instantly readable.
 
-### Buttons & Controls
-*   **Segmented Controls:** We frequently use custom segmented buttons (e.g., Row with rounded buttons) rather than M3 standard tabs or segmented buttons.
-*   **Rounded Shapes:** Elements heavily lean towards large corner radii (`RoundedCornerShape(24.dp)` or `CircleShape`).
+### Liquid Glass Blur & Translucency
+* Surfaces in SonicSpace take advantage of frosted glass blurs:
+  * Top app bars utilize `Modifier.liquidGlass` over scrolling backdrops with a streamlined 59 dp height (`AppBarHeight`).
+  * Modal bottom sheets and floating toolbars use soft translucent containers (`surfaceContainerLow.copy(alpha = 0.6f)` or `surfaceVariant.copy(alpha = 0.3f)`) rather than heavy opaque layers.
 
-### Cards & Surfaces
-*   **Custom Cards:** Unlike standard M3 cards (which use solid `surfaceContainer` colors), Echo Music cards typically use:
-    *   *Container:* `surfaceVariant.copy(alpha = 0.3f)`
-    *   *Shape:* `RoundedCornerShape(24.dp)` or `28.dp`
-    *   *Elevation:* 0.dp (flat, translucent look).
-*   Grouped items within cards are a common pattern (similar to iOS Settings).
-*   **Compact Song Rows:** History and album track lists reuse Home's unboxed `RecentTrackRow`: 52 dp square cover art with 10 dp corners, `titleMedium` title, and `bodySmall` artist text. Keep trailing actions inline without adding a row background. Local and remote History date banners use the same background color.
-*   **Home Recommendations:** Daily Discover is always the first feed section; omit server-provided Listen Together sections. Generated recommendations use neutral shelf headings and square artwork; artist-seeded sections appear after song suggestions while mixed-content sections keep their normal feed ranking.
-*   **Picked for You:** Use a titled shelf with four compact song rows per horizontal page and show at most two preview pages. Keep Play All wired to the full recommendation set. Force-crop Home cover art into square thumbnails without overriding the Library crop preference.
-*   **Listen Again:** Render the YouTube Listen Again / Keep Listening shelf as a two-row horizontal grid of square artwork cards; keep other song-only shelves in their compact list layout.
-
-### Navigation & Headers
-*   **Top App Bars:** We often use custom implementations or standard `TopAppBar` rather than `LargeTopAppBar`. Headers are sometimes manually placed over scrolling content with custom fade-in animations rather than using standard M3 `Scaffold` scroll behaviors. The main app-shell bar is 59 dp high, matching `AppBarHeight`; it uses `Modifier.liquidGlass` over the app backdrop when enabled, with transparent container colors and no pill-style edge highlights.
-*   **Bottom Navigation Bar:** Custom floating tab bars (`ui/component/floatingtabbar/`) are preferred over standard M3 `NavigationBar`. The main destinations use the Explore, Library, and Equalizer vectors from SpatialFlow; the custom tab bar applies selected and unselected tint.
+### Dynamic Harmonic Color Theming
+* Theme colors are derived from the active track's artwork using a fine-tuned HSL harmonic algorithm:
+  * **Color Saturation Limiting**: Raw vibrant seeds are tastefully calmed into a 0.16–0.38 saturation range to eliminate harsh neon glare while preserving rich warmth.
+  * **Monochrome Guarding**: True grayscale album covers automatically fallback to elegant neutral tones without ugly hue artifacts.
+  * **AMOLED Pure Black**: When enabled, backgrounds and surface containers render as `#000000` for maximum power efficiency and OLED contrast.
+  * **Balanced Light Theme**: High-contrast contrast levels ensure text and controls remain crisp and never washed out or faded in bright environments.
 
 ---
 
-## 3. Typography
+## 2. Navigation Architecture
 
-Always use `MaterialTheme.typography` but respect the app's established font weights and sizes, which often lean towards bold, expressive headers and softer body text.
+### Elevated Dynamic Navigation Bar
+SonicSpace features two navigation styles configurable in **Settings -> Appearance**:
+
+1. **Standard Navbar**:
+   * Fixed 84 dp height with standard Material 3 label and indicator styling.
+2. **Dynamic Navbar Mode**:
+   * Height: 76 dp (labels hidden) or 88 dp (with labels enabled).
+   * **Elevated Floating Icons**: Each navigation tab is rendered on an elevated pill container with 2–6 dp shadow and tonal elevation, floating slightly when active.
+   * **Scroll-to-Hide Ergonomics**: Automatically scrolls out of view on continuous downward feeds (Home, Library, Search) and glides smoothly back into place on upward gestures.
+   * **Root Scoping**: Only visible on primary top-level tabs (Home, Search, Library), keeping sub-destinations (Albums, Artists, Playlists, Settings) completely immersive.
 
 ---
 
-## 4. Extending the Design System
+## 3. Component Guidelines
 
-Before adding a brand new UI component, always check `ui/component/` to see if an existing one already implements our conventions.
+### Track Rows (`RecentTrackRow`)
+* Track list rows (History, Albums, Playlists) follow an unboxed layout:
+  * Cover art: 52 dp square with 10 dp rounded corners.
+  * Typography: Bold title with secondary artist information.
+  * Trailing actions (menu button, download indicator) remain cleanly aligned on the right.
 
-**Key Rule:** When working on UI, **look at the existing screens** (like the original Listen Together or Settings screens) and copy their specific visual style, spacing, and modifier chains. Do NOT refactor existing screens to match standard Material 3 unless explicitly requested. Our custom aesthetic takes precedence over M3 guidelines.
+### Feeds & Recommendation Shelves
+* **Daily Discover**: Always pinned to the top of the Home feed.
+* **Picked for You**: Displayed as a horizontal multi-page compact shelf with square-cropped cover art.
+* **Explore Grid**: Duotone image cards with responsive column counts and dynamic artwork loading.
+
+### Haptic Feedback
+* Tactile sensations accompany key user actions (tab clicks, seekbar adjustments, playback buttons).
+* Adjustable intensity slider (0–100%) available under Appearance settings.
+
+---
+
+## 4. Typography System
+
+SonicSpace relies on `MaterialTheme.typography` styled with Google Sans / Sans-Serif font families:
+* **Display Titles**: ExtraBold / Black weight with tight negative letter-spacing for punchy headers.
+* **Section Headers**: `titleMedium` / `titleLarge` in SemiBold.
+* **Metadata & Captions**: `bodySmall` / `labelSmall` with subtle transparency (`0.75f - 0.85f`) to emphasize primary song titles.

@@ -1,69 +1,43 @@
-# Security Policy
+# SonicSpace Security Policy
 
 ## Supported Versions
 
-We release patches for security vulnerabilities in the following versions:
+Security updates are actively provided for the following releases of **SonicSpace**:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.2.x   | :white_check_mark: |
-| > 1.2   | :x:                |
+| Version | Status |
+| :--- | :--- |
+| 1.5.x | :white_check_mark: Supported |
+| 1.4.x | :white_check_mark: Supported |
+| < 1.4 | :x: Unsupported (Upgrade recommended) |
+
+---
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Echo Music, please report it responsibly:
+The SonicSpace team takes application security and user safety seriously. If you discover a potential vulnerability, please report it responsibly:
 
-1. **Do NOT** create a public GitHub issue
-2. Email us at: [security@echomusic.fun](mailto:security@echomusic.fun)
-3. Include the following information:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Any suggested fixes
+1. **Do NOT open a public GitHub issue.** Public disclosure exposes users before a fix can be prepared.
+2. Submit a private report via **[GitHub Security Advisories](https://github.com/JustaThinker/SonicSpace/security/advisories/new)**.
+3. Include the following details in your advisory:
+   * Description and scope of the security issue.
+   * Specific steps or proof-of-concept to reproduce the behavior.
+   * Potential impact on user devices, stored tokens, or privacy.
+   * Suggested remediation or patches if available.
 
-## Security Best Practices
+We will acknowledge receipt of your report within 48 hours and work with you on a timeline for verification and release.
 
-### For Developers
+---
 
-- **Never commit sensitive files**: API keys, tokens, and credentials should never be committed to version control
-- **Use environment variables**: Store sensitive configuration in environment variables or secure properties files
-- **Regular updates**: Keep dependencies updated to patch security vulnerabilities
-- **Code review**: All code changes should be reviewed before merging
+## Security Practices for Developers
 
-### For Users
+* **Sensitive Data**: Never commit secrets, signing keystores (`*.jks`, `*.keystore`), `local.properties`, or authentication tokens to version control.
+* **Network Security**: All external API calls must use HTTPS / TLS 1.3 encryption.
+* **Storage Isolation**: User authentication cookies and session headers must be stored in secure, app-private storage (`EncryptedSharedPreferences` or app-private DataStore).
+* **Safe API Levels**: Android SDK calls that depend on newer platform features (e.g., `RenderEffect` on Android 12+) must always be guarded with `Build.VERSION.SDK_INT >= Build.VERSION_CODES.S` checks.
 
-- **Download from official sources**: Only download APKs from official releases or trusted sources
-- **Keep the app updated**: Install updates promptly to receive security patches
-- **Review permissions**: Be aware of the permissions the app requests
+---
 
-## Sensitive Information
+## Privacy & Telemetry Commitment
 
-The following files contain sensitive information and should never be committed:
-
-- `google-services.json` - Firebase configuration with API keys
-- `local.properties` - Local development configuration
-- `*.keystore` / `*.jks` - App signing keys
-- `secrets.properties` - API keys and secrets
-- `**/assets/po_token.html` - YouTube authentication tokens
-
-## Data Privacy
-
-Echo Music is committed to user privacy:
-
-- **No personal data collection**: We don't collect personal information
-- **Local storage**: User data is stored locally on the device
-- **Analytics**: We collect minimal usage data and crash reports through Firebase Analytics to improve app stability and enhance the overall user experience.
-- **Open source**: All code is available for review
-
-## Known Issues
-
-- `RenderEffect` (android.graphics.RenderEffect) requires Android 12 (API 31) or higher. Usage of this API must be guarded with `Build.VERSION.SDK_INT >= Build.VERSION_CODES.S` checks to prevent crashes on devices running Android 11 or lower.
-
-## Contact
-
-For security-related questions or to report vulnerabilities:
-
-- Email: [security@echomusic.fun](mailto:security@echomusic.fun)
-- GitHub: Create a private security advisory
-
-Thank you for helping keep Echo Music secure!
+* SonicSpace does not collect personal identifiers, sell user data, or include advertising SDKs.
+* All playback history, cached tracks, and preferences remain local on the user's device unless explicitly synced with user-authorized providers.

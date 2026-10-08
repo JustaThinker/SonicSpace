@@ -76,6 +76,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -684,15 +685,15 @@ fun NavigationStylePage(
         ) {
             val previewNavHeight by animateDpAsState(
                 targetValue = if (dynamicNavStyle) {
-                    if (hideNavLabels) 64.dp else 74.dp
+                    if (hideNavLabels) 76.dp else 88.dp
                 } else {
-                    80.dp
+                    84.dp
                 },
                 label = "previewNavHeight"
             )
             val previewIconSize by animateDpAsState(
                 targetValue = if (dynamicNavStyle) {
-                    if (hideNavLabels) 30.dp else 24.dp
+                    if (hideNavLabels) 28.dp else 24.dp
                 } else {
                     26.dp
                 },
@@ -702,10 +703,11 @@ fun NavigationStylePage(
             NavigationBar(
                 modifier = Modifier.fillMaxWidth().height(previewNavHeight),
                 containerColor = Color.Transparent,
-                tonalElevation = if (dynamicNavStyle) 8.dp else 0.dp,
+                tonalElevation = if (dynamicNavStyle) 10.dp else 0.dp,
                 windowInsets = androidx.compose.foundation.layout.WindowInsets(0.dp)
             ) {
                 listOf("Home" to Icons.Default.Home, "Search" to Icons.Default.Search, "Library" to Icons.Default.LibraryMusic).forEachIndexed { index, item ->
+                    val selected = index == 0
                     val isLabelVisible = !hideNavLabels
                     val labelComposable: (@Composable () -> Unit)? = if (isLabelVisible) {
                         @Composable {
@@ -717,11 +719,45 @@ fun NavigationStylePage(
                         }
                     } else null
                     NavigationBarItem(
-                        selected = index == 0,
+                        selected = selected,
                         onClick = {},
-                        icon = { Icon(item.second, contentDescription = null, modifier = Modifier.size(previewIconSize)) },
+                        icon = {
+                            if (dynamicNavStyle) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+                                    },
+                                    shadowElevation = if (selected) 6.dp else 2.dp,
+                                    tonalElevation = if (selected) 6.dp else 2.dp,
+                                    modifier = Modifier.graphicsLayer {
+                                        if (selected) {
+                                            translationY = (-2).dp.toPx()
+                                        }
+                                    }
+                                ) {
+                                    Box(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(item.second, contentDescription = null, modifier = Modifier.size(previewIconSize))
+                                    }
+                                }
+                            } else {
+                                Icon(item.second, contentDescription = null, modifier = Modifier.size(previewIconSize))
+                            }
+                        },
                         label = labelComposable,
-                        alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible
+                        alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible,
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = if (dynamicNavStyle) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
+                            selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }

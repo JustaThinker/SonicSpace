@@ -1,156 +1,122 @@
-# Setup Instructions
+# SonicSpace Setup & Build Guide
 
-This document provides instructions for setting up the Echo Music project for development.
+This guide provides complete instructions for setting up the local development environment and building **SonicSpace** from source.
 
-## Prerequisites
+---
 
-- Android Studio (latest version recommended)
-- Android SDK (API level as specified in `build.gradle.kts`)
-- JDK 21
-- Git
+## 1. Prerequisites
 
-## Initial Setup
+Before building SonicSpace, ensure your development workstation meets the following requirements:
 
-### 1. Clone the Repository
+* **Android Studio**: Android Studio Ladybug (2024.2.1) or newer (Meerkat / Narwhal supported).
+* **JDK**: **Java 21 (JDK 21)** is required. (Android Studio's embedded JBR or OpenJDK 21).
+* **Android SDK**:
+  * `compileSdk`: **35**
+  * `targetSdk`: **35**
+  * `minSdk`: **26** (Android 8.0 Oreo)
+* **Git**: Installed and available in your shell.
+
+---
+
+## 2. Cloning the Repository
+
+Clone the SonicSpace repository to your local machine:
 
 ```bash
-git clone https://github.com/iad1tya/Echo-Music.git
-cd Echo-Music
+git clone https://github.com/JustaThinker/SonicSpace.git
+cd SonicSpace
 ```
 
-### 2. Configure Local Properties
+---
 
-Create a `local.properties` file from the template:
+## 3. Local Environment Configuration
+
+### Android SDK Path (`local.properties`)
+
+Create a `local.properties` file in the project root containing the absolute path to your Android SDK:
 
 ```bash
+# On Linux / macOS
 cp local.properties.template local.properties
 ```
 
-Edit `local.properties` and set your Android SDK path:
+Edit `local.properties` to specify your SDK path:
 
 ```properties
-sdk.dir=/path/to/your/android/sdk
+## Example paths:
+# Windows:
+sdk.dir=C:\\Users\\<username>\\AppData\\Local\\Android\\Sdk
+
+# macOS:
+# sdk.dir=/Users/<username>/Library/Android/sdk
+
+# Linux:
+# sdk.dir=/home/<username>/Android/Sdk
 ```
 
-**Example paths:**
+> **Note**: `local.properties` is personal to your machine and is ignored by `.gitignore`. Never commit this file.
 
-- macOS: `/Users/username/Library/Android/sdk`
-- Linux: `/home/username/Android/sdk`
-- Windows: `C:\\Users\\username\\AppData\\Local\\Android\\sdk`
+---
 
-### 3. Configure Firebase (Optional)
+## 4. Building the Project
 
-Firebase is used for analytics and crash reporting. If you want to use these features:
+### Command Line Build
 
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Add an Android app to your Firebase project
-3. Download the `google-services.json` file
-4. Place it in the `app/` directory
+To compile and assemble the debug APK:
 
-**Note:** If you skip Firebase setup, the app will still build and run, but analytics and crash reporting will be disabled.
-
-### 4. Configure Release Signing (Optional)
-
-For release builds, you need to configure signing credentials. Set these as environment variables or in `gradle.properties`:
-
-```bash
-# Environment variables
-export KEYSTORE_PATH=/path/to/your/keystore.jks
-export STORE_PASSWORD=your_store_password
-export KEY_ALIAS=your_key_alias
-export KEY_PASSWORD=your_key_password
-```
-
-Or add to `gradle.properties` (never commit this file):
-
-```properties
-KEYSTORE_PATH=/path/to/your/keystore.jks
-STORE_PASSWORD=your_store_password
-KEY_ALIAS=your_key_alias
-KEY_PASSWORD=your_key_password
-```
-
-### 5. Build the Project
-
-Open the project in Android Studio or build from the command line.
-
-Echo Music now ships a single **GMS** build variant (with Google Cast support). The previous FOSS (no Google Play Services) variant has been removed.
-
-```bash
-# Debug build
-./gradlew assembleUniversalGmsDebug
-
-# Release build (requires signing configuration)
-./gradlew assembleUniversalGmsRelease
-```
-
-*(On Windows, use `.\gradlew.bat` instead of `./gradlew`)*
-
-### 6. Configure AI Translation (Optional)
-
-Echo Music supports AI-powered lyrics translation. You can configure this in **Settings -> AI Settings**.
-
-#### Option A: Using OpenRouter (Default)
-
-This is the recommended setup for most users.
-
-1. Get an API Key from [OpenRouter](https://openrouter.ai/).
-2. In the app, go to **Settings -> AI Settings**.
-3. Ensure **Provider** is set to **OpenRouter**.
-4. Enter your **API Key**.
-
-#### Option B: Using Custom Provider
-
-Use this for other services like OpenAI, Anthropic, or local LLMs.
-
-1. In the app, go to **Settings -> AI Settings**.
-2. Select your **Provider** (e.g., ChatGPT, Gemini, or Custom).
-3. If using **Custom**, enter your provider's **Base URL**.
-4. Enter your **API Key**.
-
-## Important Files
-
-### Confidential Files (Never commit these)
-
-- `local.properties` - Contains your local SDK path
-- `app/google-services.json` - Contains Firebase credentials
-- `*.keystore` - Contains signing keys for release builds
-- `gradle.properties` - May contain signing credentials
-
-These files are already listed in `.gitignore` and should never be committed to version control.
-
-### Template Files (Safe to commit)
-
-- `local.properties.template` - Template for local properties
-- `app/google-services.json` - Optional Firebase configuration
-
-## Troubleshooting
-
-### Build Fails with "SDK location not found"
-
-Make sure you've created `local.properties` with the correct SDK path.
-
-### Firebase-related Build Errors
-
-If you're not using Firebase, you can still build the standard debug variant without `app/google-services.json` — Firebase features will simply be disabled:
-
+**On Linux / macOS:**
 ```bash
 ./gradlew assembleUniversalGmsDebug
 ```
 
-### Gradle Sync Issues
-
-Try cleaning and rebuilding:
-
-```bash
-./gradlew clean
-./gradlew build
+**On Windows (PowerShell):**
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat assembleUniversalGmsDebug
 ```
 
-## Contributing
+Output APK will be located at:
+```
+app/build/outputs/apk/universalGms/debug/app-universalGms-debug.apk
+```
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+### Android Studio Build
 
-## License
+1. Launch Android Studio.
+2. Select **Open** and choose the `SonicSpace` root directory.
+3. Allow Gradle to synchronize dependencies.
+4. Select the `app` run configuration with the `universalGmsDebug` build variant.
+5. Click **Run** (`Shift + F10`) to deploy to a connected Android device or emulator.
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+---
+
+## 5. Running Tests
+
+Run the unit test suite:
+
+```bash
+# Run all unit tests across all modules
+./gradlew test
+
+# Run app unit tests only
+./gradlew :app:testUniversalGmsDebugUnitTest
+```
+
+---
+
+## 6. Optional Configurations
+
+### Google Services (Firebase Analytics / Crashlytics)
+
+SonicSpace includes stub-safe fallbacks for Google Services. If you wish to enable custom Firebase integration:
+1. Create a Firebase project in the [Firebase Console](https://console.firebase.google.com/).
+2. Add an Android app with package name `com.music.sonic`.
+3. Download `google-services.json` and place it in the `app/` directory.
+
+### AI Lyrics Translation
+
+SonicSpace supports real-time AI-powered translation of synchronized lyrics via OpenRouter. You can configure this directly inside the app:
+1. Obtain an API key from [OpenRouter](https://openrouter.ai/).
+2. Open SonicSpace on your device.
+3. Navigate to **Settings -> AI Settings**.
+4. Set provider to **OpenRouter** and enter your API Key.

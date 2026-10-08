@@ -62,6 +62,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -1344,22 +1345,22 @@ class MainActivity : ComponentActivity() {
 
                   val navBarHeight by animateDpAsState(
                     targetValue = if (dynamicNavStyle) {
-                      if (hideNavLabels) 64.dp else 74.dp
+                      if (hideNavLabels) 76.dp else 88.dp
                     } else {
-                      80.dp
+                      84.dp
                     },
                     label = "navBarHeight"
                   )
                   val navIconSize by animateDpAsState(
                     targetValue = if (dynamicNavStyle) {
-                      if (hideNavLabels) 30.dp else 24.dp
+                      if (hideNavLabels) 28.dp else 24.dp
                     } else {
                       26.dp
                     },
                     label = "navIconSize"
                   )
                   val navElevation by animateDpAsState(
-                    targetValue = if (dynamicNavStyle) 8.dp else 3.dp,
+                    targetValue = if (dynamicNavStyle) 10.dp else 3.dp,
                     label = "navElevation"
                   )
 
@@ -1403,7 +1404,7 @@ class MainActivity : ComponentActivity() {
                         this.alpha = if (translationY >= totalSlideDistPx - 1f) 0f else 1f
                       }
                       .height(navBarHeight + bottomPadding),
-                    containerColor = if (pureBlack) Color.Black else if (useDarkTheme) Color(0xFF121212) else Color(0xFFF5F5F5),
+                    containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
                     tonalElevation = navElevation
                   ) {
                     val isLabelVisible = !hideNavLabels
@@ -1418,11 +1419,41 @@ class MainActivity : ComponentActivity() {
                           onNavItemClick(screen, selected)
                         },
                         icon = {
-                          Icon(
-                            painter = painterResource(id = if (selected) screen.iconIdActive else screen.iconIdInactive),
-                            contentDescription = stringResource(screen.titleId),
-                            modifier = Modifier.size(navIconSize)
-                          )
+                          val iconPainter = painterResource(id = if (selected) screen.iconIdActive else screen.iconIdInactive)
+                          if (dynamicNavStyle) {
+                            Surface(
+                              shape = CircleShape,
+                              color = if (selected) {
+                                MaterialTheme.colorScheme.primaryContainer
+                              } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+                              },
+                              shadowElevation = if (selected) 6.dp else 2.dp,
+                              tonalElevation = if (selected) 6.dp else 2.dp,
+                              modifier = Modifier.graphicsLayer {
+                                if (selected) {
+                                  translationY = (-2).dp.toPx()
+                                }
+                              }
+                            ) {
+                              Box(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                              ) {
+                                Icon(
+                                  painter = iconPainter,
+                                  contentDescription = stringResource(screen.titleId),
+                                  modifier = Modifier.size(navIconSize)
+                                )
+                              }
+                            }
+                          } else {
+                            Icon(
+                              painter = iconPainter,
+                              contentDescription = stringResource(screen.titleId),
+                              modifier = Modifier.size(navIconSize)
+                            )
+                          }
                         },
                         label = if (isLabelVisible) {
                           {
@@ -1436,7 +1467,14 @@ class MainActivity : ComponentActivity() {
                             )
                           }
                         } else null,
-                        alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible
+                        alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible,
+                        colors = NavigationBarItemDefaults.colors(
+                          indicatorColor = if (dynamicNavStyle) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
+                          selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                          unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                          selectedTextColor = MaterialTheme.colorScheme.primary,
+                          unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                       )
                     }
                   }
