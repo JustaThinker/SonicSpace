@@ -29,8 +29,6 @@ Built on an expressive, high-contrast visual design, SonicSpace prioritizes pure
 * **Offline Downloads & Local Library** — Download tracks, albums, and playlists for offline playback, or play high-resolution audio files stored on your device.
 * **Expressive Dynamic Themes** — Harmonic Material 3 Expressive theming that dynamically adapts to album artwork, featuring true AMOLED pure black modes and fine-tuned saturation control.
 * **Real-time Synchronized Lyrics** — Word-by-word synced lyrics powered by multiple providers (LRCLIB, KuGou, BetterLyrics, YouLy, Paxsenix) with integrated on-the-fly AI translation.
-* **Liquid Glass & Fluid Animations** — Translucent frosted-glass headers, dynamic elevated navigation bars with scroll-to-hide ergonomics, and responsive gesture-driven interactions.
-* **Customizable Haptics** — Tactile vibration engine with adjustable strength and responsive feedback across controls, sliders, and navigation tabs.
 * **Listen Together** — Host and join real-time synchronized listening rooms with friends.
 * **Smart Music Discovery** — Curated Daily Discover, Picked for You shelves, interactive genre chips, and forgotten favorites.
 * **Audio Powerhouse** — Built on AndroidX Media3 (ExoPlayer), complete with 10-band graphic equalizer, bass boost, pitch control, sleep timers, and Discord Rich Presence.
