@@ -69,7 +69,6 @@ SonicSpace/
 │       └── canvas/       # Canvas video loop providers
 ├── docs/                 # Detailed architectural, setup, and design documentation
 ├── scripts/              # Build, asset, and automation scripts
-└── assets/               # Graphical assets and logos
 ```
 
 ---
