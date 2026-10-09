@@ -110,6 +110,21 @@ cd SonicSpace
 
 ---
 
+### Credits & Special Thanks
+
+SonicSpace is made possible thanks to the work of the open-source community and these projects:
+
+* **[ViMusic](https://github.com/vFSFitvNM/ViMusic)** — For foundational Android music streaming patterns and InnerTube concepts.
+* **EchoMusic** — For app updater infrastructure, canvas video loop providers, and upstream project foundations.
+* **BitChord** — For responsive layout patterns, duotone category card designs, and desktop cross-platform paradigms.
+* **SpatialFlow** — For the SpatialFlow dynamic harmonic HSL theme engine, palette color generator, and expressive vector system.
+* **[SimpMusic](https://github.com/maxrave-dev/SimpMusic)** — For inspiration on lyrics providers, canvas video loops, and PipePipe integration.
+* **[NewPipe](https://github.com/TeamNewPipe/NewPipe) & [PipePipe](https://github.com/maxrave-dev/PipePipeExtractor)** — For media stream extraction logic and parsing utilities.
+* **[LRCLIB](https://lrclib.net)** — For open-source synchronized lyrics API services.
+* **[KuGou](https://www.kugou.com/)** — For KuGou lyrics search and decoding integration.
+
+---
+
 ### License & Disclaimer
 
 SonicSpace is released under the [GNU General Public License v3.0](LICENSE). 

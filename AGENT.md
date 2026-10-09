@@ -116,7 +116,7 @@ viewmodels/     # Feature ViewModels
 
 2. **Elevated Dynamic Navigation Bar**:
    * Configurable via Appearance settings: Standard Navbar (84 dp) or Dynamic Navbar (76 dp without labels, 88 dp with labels).
-   * Elevated floating icon containers with 2–6 dp shadow and tonal elevation.
+   * Elevated floating icons with smooth scale animation (1.18x) and raised vertical spring translation (-3 dp) when selected, cleanly rendered without background box/pill containers.
    * Auto-hide on downward scroll gestures and auto-show on upward scroll.
    * Scoped strictly to root destinations (`Home`, `Search`, `Library`).
 
