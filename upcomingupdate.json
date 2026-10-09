@@ -52,8 +52,6 @@
     "Fixed faded and low-contrast colors across all Onboarding setup screens in Light Mode.",
     "Fixed Onboarding navigation style and haptic intensity preferences not syncing to app DataStore.",
     "Fixed dynamic navbar proportions and label layout to prevent cramped text overlap when labels are enabled.",
-    "Fixed missing assembleArm64GmsRelease Gradle task by introducing the abi flavor dimension in app build configuration.",
-    "Removed background box/pill containers from Dynamic Navbar icons and updated active icons with elevated scale (1.18x) and raised vertical spring translation.",
-    "Added Credits & Special Thanks section to README.md acknowledging EchoMusic, BitChord, SpatialFlow, and open-source projects."
+    "Updated build configuration to produce universal release APKs named SonicSpace-gms.apk and SonicSpace-foss.apk."
   ]
 }

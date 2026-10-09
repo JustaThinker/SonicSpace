@@ -24,7 +24,7 @@ without re-scanning the codebase every session.
 > 3. Write conventional commits (`feat(ui): ...`, `fix(playback): ...`).
 > 4. Keep `AGENT.md` and documentation up to date.
 
-> **Build variant:** Always use the Universal GMS variant (`./gradlew assembleUniversalGmsDebug` or on Windows `.\gradlew.bat assembleUniversalGmsDebug`).
+> **Build variant:** Always use the GMS variant (`./gradlew assembleGmsDebug` or on Windows `.\gradlew.bat assembleGmsDebug`). Release outputs: `SonicSpace-gms.apk` (`:app:assembleGmsRelease`) and `SonicSpace-foss.apk` (`:app:assembleFossRelease`).
 
 ---
 
@@ -116,7 +116,8 @@ viewmodels/     # Feature ViewModels
 
 2. **Elevated Dynamic Navigation Bar**:
    * Configurable via Appearance settings: Standard Navbar (84 dp) or Dynamic Navbar (76 dp without labels, 88 dp with labels).
-   * Elevated floating icons with smooth scale animation (1.18x) and raised vertical spring translation (-3 dp) when selected, cleanly rendered without background box/pill containers.
+   * Elevated floating icons with smooth scale animation (1.22x) and enlarged icon targets (28–30 dp).
+   * Spacious primaryContainer background chip framing active icons with rich tonal contrast.
    * Auto-hide on downward scroll gestures and auto-show on upward scroll.
    * Scoped strictly to root destinations (`Home`, `Search`, `Library`).
 
