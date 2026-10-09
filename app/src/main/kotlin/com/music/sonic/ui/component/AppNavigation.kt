@@ -32,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
@@ -293,6 +294,23 @@ fun AppNavigationBar(
         }
       }
 
+      val animatedScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (dynamicNavStyle && isSelected) 1.18f else 1.0f,
+        animationSpec = androidx.compose.animation.core.spring(
+          dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+          stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+        ),
+        label = "dynamicNavIconScale"
+      )
+      val animatedTranslationY by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (dynamicNavStyle && isSelected) (-3).dp else 0.dp,
+        animationSpec = androidx.compose.animation.core.spring(
+          dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+          stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+        ),
+        label = "dynamicNavIconTranslationY"
+      )
+
       NavigationBarItem(
         selected = isSelected,
         onClick = {
@@ -305,7 +323,14 @@ fun AppNavigationBar(
           Icon(
             painter = painterResource(id = iconRes),
             contentDescription = stringResource(screen.titleId),
-            modifier = Modifier.size(navIconSize)
+            modifier = Modifier
+              .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+                translationY = animatedTranslationY.toPx()
+              }
+              .size(navIconSize),
+            tint = if (dynamicNavStyle && isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified
           )
         },
         label =
@@ -318,7 +343,14 @@ fun AppNavigationBar(
               )
             }
           } else null,
-        alwaysShowLabel = !slimNav && !hideNavLabels
+        alwaysShowLabel = if (dynamicNavStyle) false else (!slimNav && !hideNavLabels),
+        colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+          indicatorColor = if (dynamicNavStyle) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
+          selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
+          unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+          selectedTextColor = MaterialTheme.colorScheme.primary,
+          unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
       )
     }
   }

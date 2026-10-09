@@ -723,28 +723,34 @@ fun NavigationStylePage(
                         onClick = {},
                         icon = {
                             if (dynamicNavStyle) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = if (selected) {
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
-                                    },
-                                    shadowElevation = if (selected) 6.dp else 2.dp,
-                                    tonalElevation = if (selected) 6.dp else 2.dp,
-                                    modifier = Modifier.graphicsLayer {
-                                        if (selected) {
-                                            translationY = (-2).dp.toPx()
+                                val animatedScale by animateFloatAsState(
+                                    targetValue = if (selected) 1.18f else 1.0f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    ),
+                                    label = "previewDynamicIconScale"
+                                )
+                                val animatedTranslationY by animateDpAsState(
+                                    targetValue = if (selected) (-3).dp else 0.dp,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    ),
+                                    label = "previewDynamicIconTranslationY"
+                                )
+                                Icon(
+                                    item.second,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .graphicsLayer {
+                                            scaleX = animatedScale
+                                            scaleY = animatedScale
+                                            translationY = animatedTranslationY.toPx()
                                         }
-                                    }
-                                ) {
-                                    Box(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(item.second, contentDescription = null, modifier = Modifier.size(previewIconSize))
-                                    }
-                                }
+                                        .size(previewIconSize),
+                                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             } else {
                                 Icon(item.second, contentDescription = null, modifier = Modifier.size(previewIconSize))
                             }
@@ -753,7 +759,7 @@ fun NavigationStylePage(
                         alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible,
                         colors = NavigationBarItemDefaults.colors(
                             indicatorColor = if (dynamicNavStyle) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-                            selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                            selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
