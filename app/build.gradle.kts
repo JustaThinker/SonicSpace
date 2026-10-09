@@ -84,17 +84,32 @@ android {
     }
   }
 
-  splits {
-    abi {
-      isEnable = true
-      reset()
-      include("armeabi-v7a", "arm64-v8a")
-      isUniversalApk = true
-    }
-  }
-
-  flavorDimensions += listOf("variant")
+  flavorDimensions += listOf("abi", "variant")
   productFlavors {
+    // ABI architecture dimensions
+    create("universal") {
+      dimension = "abi"
+      isDefault = true
+      ndk {
+        abiFilters.clear()
+        abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+      }
+    }
+    create("arm64") {
+      dimension = "abi"
+      ndk {
+        abiFilters.clear()
+        abiFilters.add("arm64-v8a")
+      }
+    }
+    create("arm32") {
+      dimension = "abi"
+      ndk {
+        abiFilters.clear()
+        abiFilters.add("armeabi-v7a")
+      }
+    }
+
     // FOSS variant (default) - F-Droid compatible, no Google Play Services
     create("foss") {
       dimension = "variant"
@@ -110,16 +125,16 @@ android {
   }
 
   applicationVariants.all {
-    outputs.forEach { output ->
-      val apkOutput = output as? com.android.build.gradle.api.ApkVariantOutput
-      val abiFilter = output.filters.find { it.filterType == com.android.build.OutputFile.ABI }?.identifier
-      val newName = when (abiFilter) {
-        "armeabi-v7a" -> "SonicSpace-arm32.apk"
-        "arm64-v8a" -> "SonicSpace-arm64.apk"
-        null -> "SonicSpace-universal.apk"
-        else -> null
-      }
-      if (newName != null && buildType.name == "release") {
+    val abiFlavor = productFlavors.find { it.dimension == "abi" }?.name
+    val newName = when (abiFlavor) {
+      "arm32" -> "SonicSpace-arm32.apk"
+      "arm64" -> "SonicSpace-arm64.apk"
+      "universal" -> "SonicSpace-universal.apk"
+      else -> null
+    }
+    if (newName != null && buildType.name == "release") {
+      outputs.forEach { output ->
+        val apkOutput = output as? com.android.build.gradle.api.ApkVariantOutput
         apkOutput?.outputFileName = newName
       }
     }
