@@ -1353,7 +1353,7 @@ class MainActivity : ComponentActivity() {
                   )
                   val navIconSize by animateDpAsState(
                     targetValue = if (dynamicNavStyle) {
-                      if (hideNavLabels) 28.dp else 24.dp
+                      if (hideNavLabels) 30.dp else 28.dp
                     } else {
                       26.dp
                     },
@@ -1422,33 +1422,28 @@ class MainActivity : ComponentActivity() {
                           val iconPainter = painterResource(id = if (selected) screen.iconIdActive else screen.iconIdInactive)
                           if (dynamicNavStyle) {
                             val animatedScale by animateFloatAsState(
-                              targetValue = if (selected) 1.18f else 1.0f,
+                              targetValue = if (selected) 1.22f else 1.0f,
                               animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioMediumBouncy,
                                 stiffness = Spring.StiffnessMediumLow
                               ),
                               label = "dynamicNavIconScale"
                             )
-                            val animatedTranslationY by animateDpAsState(
-                              targetValue = if (selected) (-3).dp else 0.dp,
-                              animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                              ),
-                              label = "dynamicNavIconTranslationY"
-                            )
-                            Icon(
-                              painter = iconPainter,
-                              contentDescription = stringResource(screen.titleId),
-                              modifier = Modifier
-                                .graphicsLayer {
-                                  scaleX = animatedScale
-                                  scaleY = animatedScale
-                                  translationY = animatedTranslationY.toPx()
-                                }
-                                .size(navIconSize),
-                              tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(
+                              modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                              contentAlignment = Alignment.Center
+                            ) {
+                              Icon(
+                                painter = iconPainter,
+                                contentDescription = stringResource(screen.titleId),
+                                modifier = Modifier
+                                  .graphicsLayer {
+                                    scaleX = animatedScale
+                                    scaleY = animatedScale
+                                  }
+                                  .size(navIconSize)
+                              )
+                            }
                           } else {
                             Icon(
                               painter = iconPainter,
@@ -1464,15 +1459,15 @@ class MainActivity : ComponentActivity() {
                               maxLines = 1,
                               overflow = TextOverflow.Ellipsis,
                               style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                               )
                             )
                           }
                         } else null,
                         alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible,
                         colors = NavigationBarItemDefaults.colors(
-                          indicatorColor = if (dynamicNavStyle) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-                          selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
+                          indicatorColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                          selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
                           unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                           selectedTextColor = MaterialTheme.colorScheme.primary,
                           unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant

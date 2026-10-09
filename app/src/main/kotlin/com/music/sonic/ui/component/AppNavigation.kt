@@ -241,10 +241,6 @@ fun AppNavigationBar(
     targetValue = if (dynamicNavStyle) 64.dp else 80.dp,
     label = "navBarHeight"
   )
-  val navIconSize by androidx.compose.animation.core.animateDpAsState(
-    targetValue = if (dynamicNavStyle) 34.dp else 26.dp,
-    label = "navIconSize"
-  )
   val navElevation by androidx.compose.animation.core.animateDpAsState(
     targetValue = if (dynamicNavStyle) 8.dp else 3.dp,
     label = "navElevation"
@@ -295,20 +291,12 @@ fun AppNavigationBar(
       }
 
       val animatedScale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (dynamicNavStyle && isSelected) 1.18f else 1.0f,
+        targetValue = if (dynamicNavStyle && isSelected) 1.22f else 1.0f,
         animationSpec = androidx.compose.animation.core.spring(
           dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
           stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
         ),
         label = "dynamicNavIconScale"
-      )
-      val animatedTranslationY by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (dynamicNavStyle && isSelected) (-3).dp else 0.dp,
-        animationSpec = androidx.compose.animation.core.spring(
-          dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-          stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
-        ),
-        label = "dynamicNavIconTranslationY"
       )
 
       NavigationBarItem(
@@ -320,18 +308,29 @@ fun AppNavigationBar(
         },
         interactionSource = interactionSource,
         icon = {
-          Icon(
-            painter = painterResource(id = iconRes),
-            contentDescription = stringResource(screen.titleId),
-            modifier = Modifier
-              .graphicsLayer {
-                scaleX = animatedScale
-                scaleY = animatedScale
-                translationY = animatedTranslationY.toPx()
-              }
-              .size(navIconSize),
-            tint = if (dynamicNavStyle && isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified
-          )
+          if (dynamicNavStyle) {
+            androidx.compose.foundation.layout.Box(
+              modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+              contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+              Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = stringResource(screen.titleId),
+                modifier = Modifier
+                  .graphicsLayer {
+                    scaleX = animatedScale
+                    scaleY = animatedScale
+                  }
+                  .size(if (hideNavLabels) 30.dp else 28.dp)
+              )
+            }
+          } else {
+            Icon(
+              painter = painterResource(id = iconRes),
+              contentDescription = stringResource(screen.titleId),
+              modifier = Modifier.size(26.dp)
+            )
+          }
         },
         label =
           if (!slimNav && !hideNavLabels) {
@@ -345,8 +344,8 @@ fun AppNavigationBar(
           } else null,
         alwaysShowLabel = if (dynamicNavStyle) false else (!slimNav && !hideNavLabels),
         colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-          indicatorColor = if (dynamicNavStyle) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-          selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
+          indicatorColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+          selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
           unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
           selectedTextColor = MaterialTheme.colorScheme.primary,
           unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant

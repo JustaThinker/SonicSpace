@@ -724,33 +724,28 @@ fun NavigationStylePage(
                         icon = {
                             if (dynamicNavStyle) {
                                 val animatedScale by animateFloatAsState(
-                                    targetValue = if (selected) 1.18f else 1.0f,
+                                    targetValue = if (selected) 1.22f else 1.0f,
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioMediumBouncy,
                                         stiffness = Spring.StiffnessMediumLow
                                     ),
                                     label = "previewDynamicIconScale"
                                 )
-                                val animatedTranslationY by animateDpAsState(
-                                    targetValue = if (selected) (-3).dp else 0.dp,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    ),
-                                    label = "previewDynamicIconTranslationY"
-                                )
-                                Icon(
-                                    item.second,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .graphicsLayer {
-                                            scaleX = animatedScale
-                                            scaleY = animatedScale
-                                            translationY = animatedTranslationY.toPx()
-                                        }
-                                        .size(previewIconSize),
-                                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Box(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        item.second,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .graphicsLayer {
+                                                scaleX = animatedScale
+                                                scaleY = animatedScale
+                                            }
+                                            .size(previewIconSize)
+                                    )
+                                }
                             } else {
                                 Icon(item.second, contentDescription = null, modifier = Modifier.size(previewIconSize))
                             }
@@ -758,8 +753,8 @@ fun NavigationStylePage(
                         label = labelComposable,
                         alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible,
                         colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = if (dynamicNavStyle) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-                            selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
+                            indicatorColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                            selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
