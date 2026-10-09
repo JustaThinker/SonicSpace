@@ -35,7 +35,8 @@
     "Increased navbar height and added elevated floating icon surfaces with custom tonal pill indicator for dynamic navbar mode.",
     "Rewrote all project documentation, guides, policies, and agent instructions from scratch tailored exclusively for SonicSpace.",
     "Removed Commits option from the System Update settings screen.",
-    "Elevated app version to 1.5.0 (versionCode 150)."
+    "Elevated app version to 1.5.0 (versionCode 150).",
+    "Removed Stats tab from Search screen."
   ],
   "bug_fixes": [
     "Matched local History date banner color to remote History.",

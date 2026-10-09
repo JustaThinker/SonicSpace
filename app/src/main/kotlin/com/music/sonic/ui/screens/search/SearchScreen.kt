@@ -421,14 +421,6 @@ fun SearchScreen(navController: NavController, pureBlack: Boolean) {
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 text = { Text("Apple Music") }
               )
-              Tab(
-                selected = selectedTabIndex == 2,
-                onClick = { selectedTabIndex = 2 },
-                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-                selectedContentColor = MaterialTheme.colorScheme.onSurface,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = { Text(stringResource(R.string.stats)) }
-              )
             }
           }
         }
@@ -445,7 +437,6 @@ fun SearchScreen(navController: NavController, pureBlack: Boolean) {
         when (selectedTabIndex) {
           0 -> ExploreTabContent(navController = navController, contentPadding = tabPadding)
           1 -> SuggestionsTabContent(navController = navController, contentPadding = tabPadding)
-          2 -> StatsTabContent(navController = navController, contentPadding = tabPadding)
         }
       }
     }
@@ -564,15 +555,5 @@ private fun ExploreSkeletonRows(columns: Int) {
         }
       }
     }
-  }
-}
-
-@Composable
-fun StatsTabContent(
-  navController: NavController,
-  contentPadding: PaddingValues = PaddingValues(0.dp)
-) {
-  Box(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-    com.music.sonic.ui.screens.StatsScreen(navController = navController)
   }
 }
