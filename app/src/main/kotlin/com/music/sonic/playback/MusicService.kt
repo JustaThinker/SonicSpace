@@ -3685,7 +3685,7 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
     val shareIntent =
       Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, "https://share.echomusic.fun/watch?v=$songId")
+        putExtra(Intent.EXTRA_TEXT, "https://share.sonicspace.app/watch?v=$songId")
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       }
     startActivity(

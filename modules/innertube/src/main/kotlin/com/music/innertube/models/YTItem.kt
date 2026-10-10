@@ -41,7 +41,7 @@ data class SongItem(
     get() = musicVideoType != null && musicVideoType != MUSIC_VIDEO_TYPE_ATV
 
   override val shareLink: String
-    get() = "https://share.echomusic.fun/watch?v=$id"
+    get() = "https://share.sonicspace.app/watch?v=$id"
 }
 
 data class AlbumItem(
@@ -56,7 +56,7 @@ data class AlbumItem(
   val description: String? = null,
 ) : YTItem() {
   override val shareLink: String
-    get() = "https://share.echomusic.fun/playlist?list=$playlistId"
+    get() = "https://share.sonicspace.app/playlist?list=$playlistId"
 }
 
 data class PlaylistItem(
@@ -74,7 +74,7 @@ data class PlaylistItem(
     get() = false
 
   override val shareLink: String
-    get() = "https://share.echomusic.fun/playlist?list=$id"
+    get() = "https://share.sonicspace.app/playlist?list=$id"
 }
 
 data class ArtistItem(
@@ -90,7 +90,7 @@ data class ArtistItem(
     get() = false
 
   override val shareLink: String
-    get() = "https://share.echomusic.fun/channel/$id"
+    get() = "https://share.sonicspace.app/channel/$id"
 }
 
 fun <T : YTItem> List<T>.filterExplicit(enabled: Boolean = true) =

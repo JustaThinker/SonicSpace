@@ -39,7 +39,7 @@ data class PlaylistEntity(
 
   val shareLink: String?
     get() {
-      return if (browseId != null) "https://share.echomusic.fun/playlist?list=$browseId" else null
+      return if (browseId != null) "https://share.sonicspace.app/playlist?list=$browseId" else null
     }
 
   fun localToggleLike() =

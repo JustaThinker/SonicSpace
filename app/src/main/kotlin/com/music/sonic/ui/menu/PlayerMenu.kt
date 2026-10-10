@@ -405,7 +405,7 @@ fun PlayerMenu(
                     type = "text/plain"
                     putExtra(
                       android.content.Intent.EXTRA_TEXT,
-                      "https://share.echomusic.fun/watch?v=${mediaMetadata.id}"
+                      "https://share.sonicspace.app/watch?v=${mediaMetadata.id}"
                     )
                   }
                 context.startActivity(android.content.Intent.createChooser(intent, null))
@@ -1424,7 +1424,7 @@ fun ListenTogetherDialog(visible: Boolean, mediaMetadata: MediaMetadata?, onDism
                 Spacer(modifier = Modifier.height(12.dp))
                 val inviteLink =
                   remember(room.roomCode) {
-                    "https://echomusic-listen-together.onrender.com/listen?code=${room.roomCode}"
+                    "https://sonicspace-listen-together.onrender.com/listen?code=${room.roomCode}"
                   }
                 Row(
                   verticalAlignment = Alignment.CenterVertically,

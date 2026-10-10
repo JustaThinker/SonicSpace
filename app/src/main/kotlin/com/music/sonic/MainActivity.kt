@@ -1790,7 +1790,7 @@ class MainActivity : ComponentActivity() {
         val videoId =
           when {
             path == "watch" -> uri.getQueryParameter("v")
-            uri.host == "youtu.be" || uri.host == "share.echomusic.fun" ->
+            uri.host == "youtu.be" || uri.host == "share.sonicspace.app" || uri.host == "share.echomusic.fun" ->
               uri.pathSegments.firstOrNull()
             else -> null
           }
