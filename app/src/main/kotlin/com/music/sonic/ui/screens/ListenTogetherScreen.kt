@@ -696,7 +696,7 @@ private fun RoomStatusCard(
         Spacer(modifier = Modifier.height(16.dp))
         val inviteLink =
           remember(roomCode) {
-            "https://echomusic-listen-together.onrender.com/listen?code=$roomCode"
+            "https://sonicspace-listen-together.onrender.com/listen?code=$roomCode"
           }
         Row(
           verticalAlignment = Alignment.CenterVertically,

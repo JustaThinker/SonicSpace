@@ -23,6 +23,12 @@ Built on an expressive, high-contrast visual design, SonicSpace prioritizes pure
 
 ---
 
+<div align="center">
+  <img src="assets/banner.png" alt="SonicSpace Banner" width="100%"/>
+</div>
+
+---
+
 ### Key Features
 
 * **Zero Ads & Frictionless Playback** — Stream any track or playlist without ads or interruptions.

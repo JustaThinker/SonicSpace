@@ -224,7 +224,7 @@ fun ArtistMenu(
                         type = "text/plain"
                         putExtra(
                           Intent.EXTRA_TEXT,
-                          "https://share.echomusic.fun/channel/${artist.id}"
+                          "https://share.sonicspace.app/channel/${artist.id}"
                         )
                       }
                     context.startActivity(Intent.createChooser(intent, null))

@@ -102,7 +102,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
-            <!-- Listen Together invite link (HTTPS App Link - works after APK installation verification) -->
+            <!-- Listen Together invite link (HTTPS App Link) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -110,22 +110,24 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="https" />
+                <data android:host="sonicspace-listen-together.onrender.com" />
                 <data android:host="echomusic-listen-together.onrender.com" />
                 <data android:pathPrefix="/listen" />
             </intent-filter>
 
-            <!-- Custom scheme for direct opens from browser (works in ALL browsers) -->
+            <!-- Custom scheme for direct opens from browser -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
+                <data android:scheme="sonicspace" />
                 <data android:scheme="echomusic" />
                 <data android:host="listen" />
             </intent-filter>
 
-            <!-- Echo Music Share Links -->
+            <!-- SonicSpace / Echo Music Share Links -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
@@ -134,6 +136,7 @@
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
+                <data android:host="share.sonicspace.app" />
                 <data android:host="share.echomusic.fun" />
                 <data android:pathPrefix="/" />
             </intent-filter>
