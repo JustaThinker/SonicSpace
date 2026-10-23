@@ -3,6 +3,7 @@ package com.music.sonic.ui.screens.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -54,6 +55,7 @@ import com.music.sonic.constants.RememberShuffleAndRepeatKey
 import com.music.sonic.constants.ResumeOnBluetoothConnectKey
 import com.music.sonic.constants.SeekExtraSeconds
 import com.music.sonic.constants.ShufflePlaylistFirstKey
+import com.music.sonic.constants.ShowPlayerOptionChipsKey
 import com.music.sonic.constants.SimilarContent
 import com.music.sonic.constants.StopMusicOnTaskClearKey
 import com.music.sonic.ui.component.EnumDialog
@@ -132,6 +134,17 @@ fun PlayerSettings(
   val (keepScreenOn, onKeepScreenOnChange) = rememberPreference(KeepScreenOn, defaultValue = false)
   val (historyDuration, onHistoryDurationChange) =
     rememberPreference(HistoryDuration, defaultValue = 1f)
+  val (showPlayerOptionChips, onShowPlayerOptionChipsChange) =
+    rememberPreference(ShowPlayerOptionChipsKey, defaultValue = true)
+
+  // ── High Quality Sources ────────────────────────────────────────────────
+  val (addonEnabled, onAddonEnabledChange) =
+    rememberPreference(com.music.sonic.constants.AddonEnabledKey, defaultValue = false)
+  val (addonServerUrl, onAddonServerUrlChange) =
+    rememberPreference(com.music.sonic.constants.AddonServerUrlKey, defaultValue = "")
+  val (jiosaavnEnabled, onJiosaavnEnabledChange) =
+    rememberPreference(com.music.sonic.constants.JioSaavnEnabledKey, defaultValue = true)
+  var addonServerUrlText by remember(addonServerUrl) { mutableStateOf(addonServerUrl) }
 
   var showAudioQualityDialog by remember { mutableStateOf(false) }
   var showDownloadQualityDialog by remember { mutableStateOf(false) }
@@ -146,7 +159,7 @@ fun PlayerSettings(
   val (downloadQuality, onDownloadQualityChange) =
     rememberEnumPreference(
       com.music.sonic.constants.DownloadQualityKey,
-      defaultValue = com.music.sonic.constants.DownloadQuality.YOUTUBE
+      defaultValue = com.music.sonic.constants.DownloadQuality.OPUS
     )
 
   if (showAudioQualityDialog) {
@@ -158,14 +171,32 @@ fun PlayerSettings(
       },
       title = stringResource(R.string.audio_quality),
       current = audioQuality,
-      values = listOf(AudioQuality.OPUS),
+      values = listOf(
+        AudioQuality.LOSSLESS,
+        AudioQuality.HIGH,
+        AudioQuality.OPUS,
+        AudioQuality.YOUTUBE_ONLY,
+      ),
       valueText = {
         when (it) {
-          AudioQuality.OPUS -> "Opus"
-          else -> ""
+          AudioQuality.LOSSLESS     -> "Lossless (FLAC/ALAC)"
+          AudioQuality.HIGH         -> "High (320 kbps)"
+          AudioQuality.OPUS         -> "Opus (YouTube default)"
+          AudioQuality.YOUTUBE_ONLY -> "YouTube Only"
         }
       },
-      valueDescription = { "" }
+      valueDescription = {
+        when (it) {
+          AudioQuality.LOSSLESS     ->
+            "Tries addon server for lossless FLAC/ALAC. Falls back to YouTube if no match."
+          AudioQuality.HIGH         ->
+            "Tries addon server → JioSaavn 320 kbps → YouTube Music."
+          AudioQuality.OPUS         ->
+            "Tries addon server → JioSaavn → YouTube Opus stream (default)."
+          AudioQuality.YOUTUBE_ONLY ->
+            "Skips all external sources. Streams directly from YouTube Music."
+        }
+      }
     )
   }
 
@@ -178,11 +209,26 @@ fun PlayerSettings(
       },
       title = stringResource(R.string.download_quality_title),
       current = downloadQuality,
-      values = listOf(com.music.sonic.constants.DownloadQuality.YOUTUBE),
+      values = listOf(
+        com.music.sonic.constants.DownloadQuality.LOSSLESS,
+        com.music.sonic.constants.DownloadQuality.HIGH,
+        com.music.sonic.constants.DownloadQuality.OPUS,
+      ),
       valueText = {
         when (it) {
-          com.music.sonic.constants.DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
-          else -> ""
+          com.music.sonic.constants.DownloadQuality.LOSSLESS -> "Lossless (Addon / JioSaavn)"
+          com.music.sonic.constants.DownloadQuality.HIGH     -> "High (320 kbps)"
+          com.music.sonic.constants.DownloadQuality.OPUS     -> "Standard (YouTube)"
+        }
+      },
+      valueDescription = {
+        when (it) {
+          com.music.sonic.constants.DownloadQuality.LOSSLESS ->
+            "Tries addon → JioSaavn. Falls back to YouTube if unavailable."
+          com.music.sonic.constants.DownloadQuality.HIGH ->
+            "Tries addon → JioSaavn 320 kbps → YouTube."
+          com.music.sonic.constants.DownloadQuality.OPUS ->
+            "YouTube stream only (standard quality)."
         }
       }
     )
@@ -235,7 +281,7 @@ fun PlayerSettings(
       Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top))
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -274,7 +320,137 @@ fun PlayerSettings(
         }
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
+
+    Material3SettingsGroup(
+      scrollState = scrollState,
+      title = "Player Display",
+      items =
+        buildList {
+          add(
+            Material3SettingsItem(
+              isHighlighted = (highlightKey == "Show Option Chips"),
+              icon = painterResource(R.drawable.discover_tune),
+              title = { Text("Show Option Chips") },
+              description = {
+                Text(
+                  "Display action chips (Like, Lyrics, Download, Comments, Share) below controls"
+                )
+              },
+              trailingContent = {
+                Switch(
+                  checked = showPlayerOptionChips,
+                  onCheckedChange = onShowPlayerOptionChipsChange,
+                  thumbContent = {
+                    Icon(
+                      painter =
+                        painterResource(
+                          id = if (showPlayerOptionChips) R.drawable.check else R.drawable.close
+                        ),
+                      contentDescription = null,
+                      modifier = Modifier.size(SwitchDefaults.IconSize)
+                    )
+                  }
+                )
+              },
+              onClick = { onShowPlayerOptionChipsChange(!showPlayerOptionChips) }
+            )
+          )
+        }
+    )
+
+    Spacer(modifier = Modifier.height(10.dp))
+
+    Material3SettingsGroup(
+      scrollState = scrollState,
+      title = "High Quality Sources",
+      items =
+        buildList {
+          add(
+            Material3SettingsItem(
+              isHighlighted = (highlightKey == "JioSaavn"),
+              icon = painterResource(R.drawable.graphic_eq),
+              title = { Text("JioSaavn 320 kbps") },
+              description = {
+                Text("Stream 320 kbps MP3 from JioSaavn before falling back to YouTube. Disabled in Data Saver mode.")
+              },
+              trailingContent = {
+                Switch(
+                  checked = jiosaavnEnabled,
+                  onCheckedChange = onJiosaavnEnabledChange,
+                  thumbContent = {
+                    Icon(
+                      painter =
+                        painterResource(
+                          id = if (jiosaavnEnabled) R.drawable.check else R.drawable.close
+                        ),
+                      contentDescription = null,
+                      modifier = Modifier.size(SwitchDefaults.IconSize)
+                    )
+                  }
+                )
+              },
+              onClick = { onJiosaavnEnabledChange(!jiosaavnEnabled) }
+            )
+          )
+
+          add(
+            Material3SettingsItem(
+              isHighlighted = (highlightKey == "Addon Server"),
+              icon = painterResource(R.drawable.graphic_eq),
+              title = { Text("Addon Server (Tidal / Qobuz / Deezer)") },
+              description = {
+                Text("Enable a community addon server for lossless & hi-res audio. Requires a running addon server URL.")
+              },
+              trailingContent = {
+                Switch(
+                  checked = addonEnabled,
+                  onCheckedChange = onAddonEnabledChange,
+                  thumbContent = {
+                    Icon(
+                      painter =
+                        painterResource(
+                          id = if (addonEnabled) R.drawable.check else R.drawable.close
+                        ),
+                      contentDescription = null,
+                      modifier = Modifier.size(SwitchDefaults.IconSize)
+                    )
+                  }
+                )
+              },
+              onClick = { onAddonEnabledChange(!addonEnabled) }
+            )
+          )
+
+          if (addonEnabled) {
+            add(
+              Material3SettingsItem(
+                isHighlighted = (highlightKey == "Addon Server URL"),
+                icon = painterResource(R.drawable.link),
+                title = { Text("Addon Server URL") },
+                description = {
+                  androidx.compose.material3.OutlinedTextField(
+                    value = addonServerUrlText,
+                    onValueChange = { addonServerUrlText = it },
+                    placeholder = { Text("http://192.168.1.5:8080") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                      if (addonServerUrlText != addonServerUrl) {
+                        androidx.compose.material3.TextButton(
+                          onClick = { onAddonServerUrlChange(addonServerUrlText) }
+                        ) { Text("Save") }
+                      }
+                    }
+                  )
+                },
+              )
+            )
+          }
+        }
+    )
+
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -289,12 +465,14 @@ fun PlayerSettings(
               description = {
                 Text(
                   when (audioQuality) {
-                    AudioQuality.OPUS -> "Opus"
-                    else -> "Opus"
+                    AudioQuality.LOSSLESS     -> "Lossless (FLAC/ALAC)"
+                    AudioQuality.HIGH         -> "High (320 kbps)"
+                    AudioQuality.OPUS         -> "Opus (YouTube default)"
+                    AudioQuality.YOUTUBE_ONLY -> "YouTube Only"
                   }
                 )
               },
-              onClick = null
+              onClick = { showAudioQualityDialog = true }
             )
           )
 
@@ -306,9 +484,12 @@ fun PlayerSettings(
               description = {
                 Text(
                   when (downloadQuality) {
-                    com.music.sonic.constants.DownloadQuality.YOUTUBE ->
-                      "YouTube Music (AAC/Default)"
-                    else -> "YouTube Music (AAC/Default)"
+                    com.music.sonic.constants.DownloadQuality.LOSSLESS ->
+                      "Lossless (Addon / JioSaavn)"
+                    com.music.sonic.constants.DownloadQuality.HIGH ->
+                      "High (320 kbps)"
+                    com.music.sonic.constants.DownloadQuality.OPUS ->
+                      "Standard (YouTube)"
                   }
                 )
               },
@@ -529,7 +710,7 @@ fun PlayerSettings(
         }
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -749,7 +930,7 @@ fun PlayerSettings(
         )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,

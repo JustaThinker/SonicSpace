@@ -84,9 +84,11 @@ SonicSpace/
 Path: `app/src/main/kotlin/com/music/sonic/`
 
 ```
-di/             # Hilt dependency injection modules (AppModule, NetworkModule, etc.)
-constants/      # Preference keys and constant definitions (DataStore keys)
-data/           # Data layer glue and repository bindings
+di/             # Hilt DI modules: AppModule, NetworkModule, SourcesModule (@SourcesHttpClient)
+constants/      # Preference keys and constant definitions (DataStore keys, AudioQuality enum)
+data/
+  sources/      # Multi-source audio resolver: MusicSource, ResolvedStream, JioSaavnSource,
+                #   AddonSource, SourceResolver — tries Addon → JioSaavn → YouTube
 db/             # Room database entities and DAOs
 eq/             # Graphic equalizer and audio effects
 listentogether/ # Real-time synchronized listening feature
@@ -102,9 +104,25 @@ ui/
   player/       # BottomSheetPlayer and FullPlayer components
   screens/      # Top-level screen destinations (Home, Search, Library, Settings, etc.)
   theme/        # SpatialFlowTheme, typography, color extraction, HSL generator
-utils/          # Android and Compose utilities
+utils/          # Android and Compose utilities (includes SettingsStore DataStore wrapper)
 viewmodels/     # Feature ViewModels
 ```
+
+### Multi-Source Audio Chain
+
+`SourceResolver` is injected into `MusicService` and called **before** the YouTube fallback on every cache miss:
+
+1. **Addon Server** (`AddonSource`) — user-configured HTTP endpoint; supports lossless FLAC/ALAC from Tidal, Qobuz, Deezer, Apple Music via community addons. Protocol: `GET /search?q=...&quality=...` → optional `GET /stream/{id}`.
+2. **JioSaavn** (`JioSaavnSource`) — built-in, always-on 320 kbps MP3 via `saavn.dev` public API. Skipped when Data Saver is on or user disables it.
+3. **YouTube Music** — last resort; called when `SourceResolver.resolve()` returns `null`.
+
+**Quality tiers** (`AudioQuality` enum in `PreferenceKeys.kt`):
+- `LOSSLESS` — Addon only → YouTube (no JioSaavn downgrade)
+- `HIGH` — Addon → JioSaavn → YouTube
+- `OPUS` — Addon → JioSaavn → YouTube Opus (default)
+- `YOUTUBE_ONLY` — skip all external sources
+
+Settings UI lives in `PlayerSettings.kt` under the **High Quality Sources** group.
 
 ---
 
@@ -114,10 +132,14 @@ viewmodels/     # Feature ViewModels
    * Uses `Modifier.liquidGlass` with high blur radius and translucent surface tinting for app bars and headers.
    * Main top app bar is 59 dp high (`AppBarHeight`).
 
+5. **Onboarding Illustrations**:
+   * Keep the Welcome page branded with SonicSpace's own launcher art; use the attributed SpatialFlow vectors for the remaining onboarding pages.
+
 2. **Elevated Dynamic Navigation Bar**:
    * Configurable via Appearance settings: Standard Navbar (84 dp) or Dynamic Navbar (76 dp without labels, 88 dp with labels).
    * Elevated floating icons with smooth scale animation (1.22x) and enlarged icon targets (28–30 dp).
-   * Spacious primaryContainer background chip framing active icons with rich tonal contrast.
+   * Smooth sliding selection chip indicator (`animatedOffsetPx`, `animatedWidthPx`) gliding seamlessly across tabs on screen changes with spring physics and liquid stretch/squash dynamics.
+   * Extended background surface filling the bottom gap down to the edge of the screen, with content insets for gesture navigation.
    * Auto-hide on downward scroll gestures and auto-show on upward scroll.
    * Scoped strictly to root destinations (`Home`, `Search`, `Library`).
 
@@ -127,3 +149,23 @@ viewmodels/     # Feature ViewModels
 
 4. **Track Row Standardization**:
    * Unboxed track rows (`RecentTrackRow`) with 52 dp square cover art, 10 dp rounded corners, and clear typographic hierarchy.
+
+5. **Compact Grouped Settings Options**:
+   * `Material3SettingsGroup` groups all option rows in a single rounded card container (`20 dp` corners) per section.
+   * Compact option row padding (`8–9 dp` vertical) and sleek inner horizontal dividers for dense, readable settings screens.
+
+6. **About & Updates Screen**:
+   * Keep app identity and Developer link first, App Updates next, and acknowledgements as the final section on the same scrollable page.
+   * Keep update status/check, preferences, and version history together in a compact settings group; route legacy update destinations to this unified page.
+
+7. **Listening Stats**:
+   * The Stats destination owns its `Your Replay` app bar and uses a consistent 16 dp content gutter with independent app bar and player/navigation insets.
+
+8. **Search Explore**:
+   * Keep Search as one discovery destination with a direct search field; browse sections retain their upstream category headings and responsive artwork grid.
+   * Start browse content directly with the catalog categories, using dynamic mood/genre artwork and direct browse navigation; do not add a parallel charts-provider tab or extra page header.
+
+9. **Player Action Chips**:
+   * Configurable via Player Settings ('Show Player Option Chips' toggle).
+   * Renders horizontal action pills below player controls for Like, Lyrics, Download, Comments, and Share.
+

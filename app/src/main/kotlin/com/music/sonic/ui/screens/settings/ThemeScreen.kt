@@ -1,45 +1,30 @@
-@file:OptIn(
-  ExperimentalMaterial3ExpressiveApi::class,
-  ExperimentalLayoutApi::class,
-  ExperimentalMaterial3Api::class
-)
+@file:OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 
 package com.music.sonic.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.BrightnessAuto
-import androidx.compose.material.icons.rounded.Contrast
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -60,55 +45,94 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.music.sonic.R
+import com.music.sonic.constants.AppFontKey
+import com.music.sonic.constants.BitChordPaletteKey
 import com.music.sonic.constants.DarkModeKey
 import com.music.sonic.constants.DynamicThemeKey
+import com.music.sonic.constants.LiquidGlassGlobalEnabledKey
 import com.music.sonic.constants.PureBlackKey
 import com.music.sonic.constants.PureBlackMiniPlayerKey
 import com.music.sonic.constants.SelectedThemeColorKey
+import com.music.sonic.constants.UseFloatingNavBarKey
+import com.music.sonic.ui.component.ThemeOption
+import com.music.sonic.ui.component.getActiveThemeOption
 import com.music.sonic.ui.theme.DefaultThemeColor
 import com.music.sonic.utils.rememberEnumPreference
 import com.music.sonic.utils.rememberPreference
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ThemeScreen(navController: NavController, highlightKey: String? = null) {
   val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
   val (pureBlack, onPureBlackChangeRaw) = rememberPreference(PureBlackKey, defaultValue = false)
   val (_, onPureBlackMiniPlayerChange) =
     rememberPreference(PureBlackMiniPlayerKey, defaultValue = false)
-
   val onPureBlackChange: (Boolean) -> Unit = { enabled ->
     onPureBlackChangeRaw(enabled)
     onPureBlackMiniPlayerChange(enabled)
   }
   val (selectedThemeColorInt, onSelectedThemeColorChange) =
     rememberPreference(SelectedThemeColorKey, DefaultThemeColor.toArgb())
-  val (_, onDynamicThemeChange) = rememberPreference(DynamicThemeKey, defaultValue = true)
+  val (dynamicTheme, onDynamicThemeChange) =
+    rememberPreference(DynamicThemeKey, defaultValue = true)
+  val (appFont, onAppFontChange) =
+    rememberPreference(AppFontKey, defaultValue = "GOOGLE_SANS")
+  val (liquidGlassEnabled, onLiquidGlassEnabledChange) =
+    rememberPreference(LiquidGlassGlobalEnabledKey, defaultValue = false)
+  val (bitChordPaletteEnabled, onBitChordPaletteChange) =
+    rememberPreference(BitChordPaletteKey, defaultValue = false)
+  val (_, onUseFloatingNavBarChange) =
+    rememberPreference(UseFloatingNavBarKey, defaultValue = false)
 
+  val currentThemeOption =
+    getActiveThemeOption(dynamicTheme, bitChordPaletteEnabled, liquidGlassEnabled)
   val selectedThemeColor = Color(selectedThemeColorInt)
+
+  val handleThemeOptionSelected: (ThemeOption) -> Unit = { option ->
+    when (option) {
+      ThemeOption.STATIC -> {
+        onDynamicThemeChange(false)
+        onBitChordPaletteChange(false)
+        if (liquidGlassEnabled) onLiquidGlassEnabledChange(false)
+      }
+      ThemeOption.DYNAMIC -> {
+        onDynamicThemeChange(true)
+        onBitChordPaletteChange(false)
+        if (liquidGlassEnabled) onLiquidGlassEnabledChange(false)
+        onSelectedThemeColorChange(DefaultThemeColor.toArgb())
+      }
+      ThemeOption.BITCHORD -> {
+        onBitChordPaletteChange(true)
+        onDynamicThemeChange(false)
+        onUseFloatingNavBarChange(true)
+      }
+    }
+  }
 
   val handleColorSelection: (Color) -> Unit = { color ->
     onSelectedThemeColorChange(color.toArgb())
-    onDynamicThemeChange(color == DefaultThemeColor)
+    onDynamicThemeChange(false)
+    onBitChordPaletteChange(false)
+    if (liquidGlassEnabled) onLiquidGlassEnabledChange(false)
   }
 
   Scaffold(
     topBar = {
       TopAppBar(
-        title = { Text(stringResource(R.string.theme_colors), fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.theme_colors), fontWeight = FontWeight.SemiBold) },
         navigationIcon = {
-          IconButton(onClick = { navController.navigateUp() }) {
-            Icon(
+          androidx.compose.material3.IconButton(onClick = { navController.navigateUp() }) {
+            androidx.compose.material3.Icon(
               painterResource(R.drawable.arrow_back),
               contentDescription = stringResource(R.string.cd_back)
             )
@@ -122,175 +146,241 @@ fun ThemeScreen(navController: NavController, highlightKey: String? = null) {
       )
     }
   ) { innerPadding ->
-    LazyColumn(
+    Column(
       modifier =
         Modifier.fillMaxSize()
-          .background(
-            Brush.verticalGradient(
-              colors =
-                listOf(
-                  MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                  MaterialTheme.colorScheme.surface
-                )
-            )
-          )
-          .padding(innerPadding),
-      contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 120.dp),
-      verticalArrangement = Arrangement.spacedBy(24.dp)
+          .padding(innerPadding)
+          .padding(horizontal = 20.dp)
     ) {
-      item {
-        Text(
-          text = stringResource(R.string.theme_mode),
-          style = MaterialTheme.typography.titleMedium,
-          color = MaterialTheme.colorScheme.primary,
-          fontWeight = FontWeight.Bold,
-          modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
-        )
-
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-          ) {
-            ThemeModeCard(
-              modifier = Modifier.weight(1f),
-              title = stringResource(R.string.dark_theme_follow_system),
-              icon = Icons.Rounded.BrightnessAuto,
-              isSelected = darkMode == DarkMode.AUTO,
-              onClick = {
-                onDarkModeChange(DarkMode.AUTO)
-                onPureBlackChange(false)
-              }
-            )
-            ThemeModeCard(
-              modifier = Modifier.weight(1f),
-              title = "Light",
-              icon = Icons.Rounded.LightMode,
-              isSelected = darkMode == DarkMode.OFF,
-              onClick = {
-                onDarkModeChange(DarkMode.OFF)
-                onPureBlackChange(false)
-              }
-            )
-          }
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-          ) {
-            ThemeModeCard(
-              modifier = Modifier.weight(1f),
-              title = "Dark",
-              icon = Icons.Rounded.DarkMode,
-              isSelected = darkMode == DarkMode.ON && !pureBlack,
-              onClick = {
-                onDarkModeChange(DarkMode.ON)
-                onPureBlackChange(false)
-              }
-            )
-            ThemeModeCard(
-              modifier = Modifier.weight(1f),
-              title = "AMOLED",
-              icon = Icons.Rounded.Contrast,
-              isSelected = pureBlack,
-              onClick = {
-                onDarkModeChange(DarkMode.ON)
-                onPureBlackChange(true)
-              }
-            )
-          }
-        }
-      }
-
-      item {
-        HorizontalDivider(
-          modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
-          color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-        )
-      }
-
-      item {
-        Text(
-          text = stringResource(R.string.color_palette),
-          style = MaterialTheme.typography.titleMedium,
-          color = MaterialTheme.colorScheme.primary,
-          fontWeight = FontWeight.Bold,
-          modifier = Modifier.padding(bottom = 16.dp, start = 4.dp)
-        )
-
-        Card(
-          modifier = Modifier.fillMaxWidth(),
-          shape = RoundedCornerShape(32.dp),
-          colors =
-            CardDefaults.cardColors(
-              containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.6f)
-            ),
-          elevation = CardDefaults.cardElevation(0.dp),
-          border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-        ) {
-          Column(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-          ) {
-            val isDynamic = selectedThemeColor == DefaultThemeColor
+      androidx.compose.foundation.lazy.LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+      ) {
+        item {
+          ThemeSection(title = stringResource(R.string.theme_mode)) {
             Row(
               modifier =
                 Modifier.fillMaxWidth()
                   .clip(RoundedCornerShape(16.dp))
-                  .clickable {
-                    if (!isDynamic) {
-                      handleColorSelection(DefaultThemeColor)
-                    } else {
-                      handleColorSelection(Color(0xFF1E88E5))
-                    }
-                  }
-                  .padding(8.dp),
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.SpaceBetween
+                  .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                  .padding(4.dp),
+              horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-              ) {
-                Box(
-                  modifier =
-                    Modifier.size(40.dp)
-                      .clip(RoundedCornerShape(12.dp))
-                      .background(MaterialTheme.colorScheme.primaryContainer),
-                  contentAlignment = Alignment.Center
-                ) {
-                  Icon(
-                    painter = painterResource(R.drawable.palette),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp)
-                  )
+              ThemeChoice(
+                title = "System",
+                selected = darkMode == DarkMode.AUTO,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                  onDarkModeChange(DarkMode.AUTO)
+                  onPureBlackChange(false)
                 }
-                Text(
-                  text = stringResource(R.string.palette_dynamic),
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = FontWeight.Medium,
-                  color = MaterialTheme.colorScheme.onSurface
-                )
-              }
-              Switch(
-                checked = isDynamic,
-                onCheckedChange = { checked ->
-                  if (checked) {
-                    handleColorSelection(DefaultThemeColor)
-                  } else {
-                    handleColorSelection(Color(0xFF1E88E5))
-                  }
+              )
+              ThemeChoice(
+                title = "Light",
+                selected = darkMode == DarkMode.OFF,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                  onDarkModeChange(DarkMode.OFF)
+                  onPureBlackChange(false)
+                }
+              )
+              ThemeChoice(
+                title = "Dark",
+                selected = darkMode == DarkMode.ON && !pureBlack,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                  onDarkModeChange(DarkMode.ON)
+                  onPureBlackChange(false)
+                }
+              )
+              ThemeChoice(
+                title = "AMOLED",
+                selected = pureBlack,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                  onDarkModeChange(DarkMode.ON)
+                  onPureBlackChange(true)
                 }
               )
             }
+          }
+        }
 
-            AnimatedVisibility(visible = !isDynamic) {
-              HsvColorPicker(
-                initialColor =
-                  if (selectedThemeColor == DefaultThemeColor) Color(0xFF1E88E5)
-                  else selectedThemeColor,
-                onColorCommit = { handleColorSelection(it) }
+        item {
+          ThemeSection(
+            title = stringResource(R.string.theme_style),
+            description = currentThemeOption.description
+          ) {
+            Row(
+              modifier =
+                Modifier.fillMaxWidth()
+                  .clip(RoundedCornerShape(16.dp))
+                  .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                  .padding(4.dp),
+              horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+              ThemeOption.entries.forEach { option ->
+                ThemeChoice(
+                  title = option.title,
+                  selected = currentThemeOption == option,
+                  modifier = Modifier.weight(1f),
+                  onClick = { handleThemeOptionSelected(option) }
+                )
+              }
+            }
+
+            AnimatedVisibility(visible = currentThemeOption == ThemeOption.STATIC) {
+              Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+              ) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                  Text(
+                    text = "Accent color",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                  )
+                  if (selectedThemeColor.toArgb() != DefaultThemeColor.toArgb()) {
+                    Text(
+                      text = "Reset",
+                      style = MaterialTheme.typography.labelLarge,
+                      color = MaterialTheme.colorScheme.primary,
+                      modifier = Modifier.clickable { handleColorSelection(DefaultThemeColor) }
+                    )
+                  }
+                }
+
+                val presets =
+                  listOf(
+                    "Default" to DefaultThemeColor,
+                    "Ocean" to Color(0xFF0288D1),
+                    "Purple" to Color(0xFF7E57C2),
+                    "Emerald" to Color(0xFF00897B),
+                    "Sunset" to Color(0xFFFB8C00),
+                    "Rose" to Color(0xFFE91E63),
+                    "Indigo" to Color(0xFF3F51B5)
+                  )
+                FlowRow(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(18.dp),
+                  verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                  presets.forEach { (name, color) ->
+                    val isSelected = selectedThemeColor.toArgb() == color.toArgb()
+                    Box(
+                      modifier =
+                        Modifier.size(32.dp)
+                          .clip(CircleShape)
+                          .background(color)
+                          .border(
+                            width = if (isSelected) 2.dp else 0.dp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            shape = CircleShape
+                          )
+                          .padding(if (isSelected) 3.dp else 0.dp)
+                          .clip(CircleShape)
+                          .semantics {
+                            contentDescription = name
+                            selected = isSelected
+                          }
+                          .clickable { handleColorSelection(color) }
+                    )
+                  }
+                }
+                HsvColorPicker(
+                  initialColor = selectedThemeColor,
+                  onColorCommit = handleColorSelection
+                )
+              }
+            }
+          }
+        }
+
+        item {
+          ThemeSection(title = stringResource(R.string.liquid_glass)) {
+            Row(
+              modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Column(
+                modifier =
+                  Modifier.weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { navController.navigate("settings/appearance/liquidglass") }
+                    .padding(vertical = 8.dp)
+              ) {
+                Text(
+                  text = "Liquid Glass",
+                  style = MaterialTheme.typography.titleSmall,
+                  fontWeight = FontWeight.Medium
+                )
+                Text(
+                  text = "Adjust blur and translucency",
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+              }
+              Switch(
+                checked = liquidGlassEnabled,
+                onCheckedChange = onLiquidGlassEnabledChange
               )
+            }
+          }
+        }
+
+        item {
+          ThemeSection(title = "App font") {
+            val fontOptions =
+              listOf(
+                "GOOGLE_SANS" to "Google Sans",
+                "SYSTEM" to "System default",
+                "MONOSPACE" to "Monospace",
+                "SANS_FLEX" to "Sans Flex"
+              )
+            Column {
+              fontOptions.forEachIndexed { index, (key, label) ->
+                val isSelected =
+                  appFont.equals(key, ignoreCase = true) ||
+                    (key == "GOOGLE_SANS" && appFont.equals("DEFAULT", ignoreCase = true))
+                Row(
+                  modifier =
+                    Modifier.fillMaxWidth()
+                      .clip(RoundedCornerShape(10.dp))
+                      .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { onAppFontChange(key) }
+                      )
+                      .padding(vertical = 12.dp),
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  Text(
+                    text = label,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color =
+                      if (isSelected) MaterialTheme.colorScheme.primary
+                      else MaterialTheme.colorScheme.onSurface
+                  )
+                  if (isSelected) {
+                    Box(
+                      modifier =
+                        Modifier.size(8.dp)
+                          .clip(CircleShape)
+                          .background(MaterialTheme.colorScheme.primary)
+                    )
+                  }
+                }
+                if (index < fontOptions.lastIndex) {
+                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+              }
             }
           }
         }
@@ -300,86 +390,70 @@ fun ThemeScreen(navController: NavController, highlightKey: String? = null) {
 }
 
 @Composable
-fun ThemeModeCard(
-  modifier: Modifier = Modifier,
+private fun ThemeSection(
   title: String,
-  icon: ImageVector,
-  isSelected: Boolean,
+  description: String? = null,
+  content: @Composable ColumnScope.() -> Unit
+) {
+  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Text(
+      text = title,
+      style = MaterialTheme.typography.titleMedium,
+      fontWeight = FontWeight.SemiBold,
+      color = MaterialTheme.colorScheme.onSurface
+    )
+    Column(
+      modifier =
+        Modifier.fillMaxWidth()
+          .clip(RoundedCornerShape(18.dp))
+          .background(MaterialTheme.colorScheme.surfaceContainerLow)
+          .padding(16.dp),
+      verticalArrangement = Arrangement.spacedBy(10.dp),
+      content = content
+    )
+    description?.let {
+      Text(
+        text = it,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 2.dp)
+      )
+    }
+  }
+}
+
+@Composable
+private fun ThemeChoice(
+  title: String,
+  selected: Boolean,
+  modifier: Modifier = Modifier,
   onClick: () -> Unit
 ) {
-  val scale by
-    animateFloatAsState(
-      targetValue = if (isSelected) 1.02f else 1f,
-      animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-      label = "scale"
-    )
-  val borderWidth by
-    animateDpAsState(
-      targetValue = if (isSelected) 2.dp else 1.dp,
-      animationSpec = spring(stiffness = Spring.StiffnessMedium),
-      label = "borderWidth"
-    )
-
-  val borderColor =
-    if (isSelected) {
-      MaterialTheme.colorScheme.primary
-    } else {
-      MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-    }
-
-  val backgroundBrush =
-    if (isSelected) {
-      Brush.linearGradient(
-        colors =
-          listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-          )
-      )
-    } else {
-      Brush.linearGradient(
-        colors =
-          listOf(
-            MaterialTheme.colorScheme.surfaceContainerLow,
-            MaterialTheme.colorScheme.surfaceContainerLow
-          )
-      )
-    }
-
   Box(
     modifier =
       modifier
-        .graphicsLayer {
-          scaleX = scale
-          scaleY = scale
-        }
-        .clip(RoundedCornerShape(24.dp))
-        .background(backgroundBrush)
-        .border(borderWidth, borderColor, RoundedCornerShape(24.dp))
-        .clickable(onClick = onClick)
-        .padding(vertical = 24.dp, horizontal = 12.dp),
+        .clip(RoundedCornerShape(12.dp))
+        .background(
+          if (selected) MaterialTheme.colorScheme.secondaryContainer
+          else Color.Transparent
+        )
+        .selectable(
+          selected = selected,
+          role = Role.RadioButton,
+          onClick = onClick
+        )
+        .padding(horizontal = 4.dp, vertical = 11.dp),
     contentAlignment = Alignment.Center
   ) {
-    Column(
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-      Icon(
-        imageVector = icon,
-        contentDescription = null,
-        tint =
-          if (isSelected) MaterialTheme.colorScheme.primary
-          else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(32.dp)
-      )
-      Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-        color =
-          if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-      )
-    }
+    Text(
+      text = title,
+      style = MaterialTheme.typography.labelMedium,
+      fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+      color =
+        if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+      maxLines = 1
+    )
   }
 }
 
@@ -390,17 +464,17 @@ fun HsvColorPicker(
   onColorCommit: (Color) -> Unit
 ) {
   var hsv by remember {
-    val h = FloatArray(3)
-    android.graphics.Color.colorToHSV(initialColor.toArgb(), h)
-    mutableStateOf(h)
+    val values = FloatArray(3)
+    android.graphics.Color.colorToHSV(initialColor.toArgb(), values)
+    mutableStateOf(values)
   }
 
   LaunchedEffect(initialColor) {
-    val currentC = android.graphics.Color.HSVToColor(hsv)
-    if (currentC != initialColor.toArgb()) {
-      val h = FloatArray(3)
-      android.graphics.Color.colorToHSV(initialColor.toArgb(), h)
-      hsv = h
+    val currentColor = android.graphics.Color.HSVToColor(hsv)
+    if (currentColor != initialColor.toArgb()) {
+      val values = FloatArray(3)
+      android.graphics.Color.colorToHSV(initialColor.toArgb(), values)
+      hsv = values
     }
   }
 
@@ -414,29 +488,28 @@ fun HsvColorPicker(
     value = hsv[2]
   }
 
-  fun getLocalColor(): Color =
+  fun currentColor(): Color =
     Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value)))
 
   fun commitColor() {
     hsv = floatArrayOf(hue, saturation, value)
-    onColorCommit(getLocalColor())
+    onColorCommit(currentColor())
   }
 
-  Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+  Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
     Box(
       modifier =
         Modifier.fillMaxWidth()
-          .height(60.dp)
-          .clip(RoundedCornerShape(16.dp))
-          .background(getLocalColor())
+          .height(44.dp)
+          .clip(RoundedCornerShape(12.dp))
+          .background(currentColor())
     )
-
     CustomColorSlider(
       value = hue,
       onValueChange = { hue = it },
       onValueChangeFinished = { commitColor() },
       valueRange = 0f..360f,
-      label = "Hue",
+      label = "Custom color",
       brush =
         Brush.horizontalGradient(
           colors =
@@ -454,9 +527,8 @@ fun HsvColorPicker(
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomColorSlider(
+private fun CustomColorSlider(
   value: Float,
   onValueChange: (Float) -> Unit,
   onValueChangeFinished: () -> Unit,
@@ -467,13 +539,16 @@ fun CustomColorSlider(
   Column(modifier = Modifier.fillMaxWidth()) {
     Text(
       text = label,
-      style = MaterialTheme.typography.bodyMedium,
+      style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.padding(bottom = 8.dp)
+      modifier = Modifier.padding(bottom = 4.dp)
     )
     Box(
       modifier =
-        Modifier.fillMaxWidth().height(32.dp).clip(RoundedCornerShape(16.dp)).background(brush),
+        Modifier.fillMaxWidth()
+          .height(28.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(brush),
       contentAlignment = Alignment.CenterStart
     ) {
       Slider(
@@ -485,7 +560,7 @@ fun CustomColorSlider(
           SliderDefaults.colors(
             thumbColor = Color.White,
             activeTrackColor = Color.Transparent,
-            inactiveTrackColor = Color.Transparent,
+            inactiveTrackColor = Color.Transparent
           ),
         modifier = Modifier.fillMaxWidth()
       )

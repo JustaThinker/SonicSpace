@@ -6,15 +6,20 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -24,8 +29,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,6 +60,7 @@ import com.music.sonic.constants.StatPeriod
 import com.music.sonic.models.toMediaMetadata
 import com.music.sonic.playback.queues.YouTubeQueue
 import com.music.sonic.ui.component.ChoiceChipsRow
+import com.music.sonic.ui.component.IconButton
 import com.music.sonic.ui.component.LocalAlbumsGrid
 import com.music.sonic.ui.component.LocalArtistsGrid
 import com.music.sonic.ui.component.LocalMenuState
@@ -61,6 +71,7 @@ import com.music.sonic.ui.menu.ArtistMenu
 import com.music.sonic.ui.menu.SongMenu
 import com.music.sonic.utils.joinByBullet
 import com.music.sonic.utils.makeTimeString
+import com.music.sonic.ui.utils.backToMain
 import com.music.sonic.viewmodels.StatsViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -69,6 +80,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun StatsScreen(
   navController: NavController,
+  scrollBehavior: TopAppBarScrollBehavior,
   viewModel: StatsViewModel = hiltViewModel(),
 ) {
   val menuState = LocalMenuState.current
@@ -94,6 +106,7 @@ fun StatsScreen(
   val coroutineScope = rememberCoroutineScope()
   val lazyListState = rememberLazyListState()
   val selectedOption by viewModel.selectedOption.collectAsState()
+  val windowInsets = LocalPlayerAwareWindowInsets.current
 
   val weeklyDates =
     if (currentDate != null && firstEvent != null) {
@@ -169,10 +182,44 @@ fun StatsScreen(
       emptyList()
     }
 
-  Box(modifier = Modifier.fillMaxSize()) {
+  Scaffold(
+    modifier = Modifier.fillMaxSize(),
+    containerColor = MaterialTheme.colorScheme.surface,
+    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    topBar = {
+      TopAppBar(
+        title = {
+          Text(
+            text = "Your Replay",
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+          )
+        },
+        navigationIcon = {
+          IconButton(
+            onClick = { navController.navigateUp() },
+            onLongClick = navController::backToMain
+          ) {
+            Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+          }
+        },
+        scrollBehavior = scrollBehavior,
+        colors = TopAppBarDefaults.topAppBarColors(
+          containerColor = MaterialTheme.colorScheme.surface,
+          scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+      )
+    }
+  ) { innerPadding ->
     LazyColumn(
       state = lazyListState,
-      contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+      modifier = Modifier.fillMaxSize()
+        .windowInsetsPadding(windowInsets.only(WindowInsetsSides.Horizontal)),
+      contentPadding = PaddingValues(
+        top = innerPadding.calculateTopPadding() + 8.dp,
+        bottom = windowInsets.asPaddingValues().calculateBottomPadding() + 16.dp
+      )
     ) {
       item(key = "choice_chips") {
         ChoiceChipsRow(
@@ -206,6 +253,7 @@ fun StatsScreen(
           },
           currentValue = indexChips,
           onValueUpdate = { viewModel.indexChips.value = it },
+          modifier = Modifier.padding(horizontal = 4.dp),
         )
       }
 
@@ -525,11 +573,12 @@ fun StatsScreen(
       item(key = "mostPlayedSongs") {
         NavigationTitle(
           title = "${mostPlayedSongsStats.size} ${stringResource(id = R.string.songs)}",
-          modifier = Modifier.animateItem(),
+          modifier = Modifier.padding(horizontal = 4.dp).animateItem(),
         )
 
         LazyRow(
-          modifier = Modifier.animateItem(),
+          modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
           itemsIndexed(
             items = mostPlayedSongsStats,
@@ -585,11 +634,12 @@ fun StatsScreen(
       item(key = "mostPlayedArtists") {
         NavigationTitle(
           title = "${mostPlayedArtists.size} ${stringResource(id = R.string.artists)}",
-          modifier = Modifier.animateItem(),
+          modifier = Modifier.padding(horizontal = 4.dp).animateItem(),
         )
 
         LazyRow(
-          modifier = Modifier.animateItem(),
+          modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
           itemsIndexed(
             items = mostPlayedArtists,
@@ -627,12 +677,13 @@ fun StatsScreen(
       item(key = "mostPlayedAlbums") {
         NavigationTitle(
           title = "${mostPlayedAlbums.size} ${stringResource(id = R.string.albums)}",
-          modifier = Modifier.animateItem(),
+          modifier = Modifier.padding(horizontal = 4.dp).animateItem(),
         )
 
         if (mostPlayedAlbums.isNotEmpty()) {
           LazyRow(
-            modifier = Modifier.animateItem(),
+            modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
           ) {
             itemsIndexed(
               items = mostPlayedAlbums,

@@ -30,8 +30,10 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -67,7 +69,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -80,6 +85,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -292,15 +298,15 @@ class FloatingTabBarScrollConnection(
           // Scrolling down enough - transition to inline mode
           isInline = true
           accumulatedScroll = 0f // Reset after state change
-        } else if (accumulatedScroll >= scrollThresholdPx && isInline) {
-          // Scrolling up enough - transition to expanded mode
+        } else if (accumulatedScroll >= scrollThresholdPx * 1.6f && isInline) {
+          // Scrolling up requires 1.6x threshold to prevent accidental expansion on small scroll-ups
           isInline = false
           accumulatedScroll = 0f // Reset after state change
         }
       }
       FloatingTabBarInlineBehavior.OnScrollUp -> {
         // Check if we've scrolled enough to trigger state change
-        if (accumulatedScroll >= scrollThresholdPx && !isInline) {
+        if (accumulatedScroll >= scrollThresholdPx * 1.6f && !isInline) {
           // Scrolling up enough - transition to inline mode
           isInline = true
           accumulatedScroll = 0f // Reset after state change
@@ -324,7 +330,7 @@ class FloatingTabBarScrollConnection(
  *
  * @param initialIsInline Initial state of the tab bar (inline or expanded). Default is false.
  * @param scrollThreshold The minimum scroll distance required to trigger a state change. Default is
- *   50.dp.
+ *   90.dp.
  * @param inlineBehavior Defines when the tab bar should transition to inline state. Default is
  *   [FloatingTabBarInlineBehavior.OnScrollDown].
  * @return A remembered [FloatingTabBarScrollConnection] instance.
@@ -332,7 +338,7 @@ class FloatingTabBarScrollConnection(
 @Composable
 fun rememberFloatingTabBarScrollConnection(
   initialIsInline: Boolean = false,
-  scrollThreshold: Dp = 50.dp,
+  scrollThreshold: Dp = 90.dp,
   inlineBehavior: FloatingTabBarInlineBehavior = FloatingTabBarInlineBehavior.OnScrollDown
 ): FloatingTabBarScrollConnection =
   with(LocalDensity.current) {
@@ -418,7 +424,7 @@ private fun SharedTransitionScope.InlineBar(
     modifier =
       Modifier.fillMaxWidth()
         .then(if (accessory == null) Modifier.wrapContentWidth() else Modifier)
-        .height(56.dp)
+        .height(IntrinsicSize.Max)
   ) {
     if (hasInlineTab) {
       InlineTab(
@@ -606,7 +612,7 @@ private fun SharedTransitionScope.ExpandedBar(
   Column(
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(sizes.componentSpacing),
-    modifier = Modifier.width(IntrinsicSize.Min)
+    modifier = Modifier.fillMaxWidth()
   ) {
     if (accessory != null) {
       ExpandedAccessory(
@@ -623,7 +629,9 @@ private fun SharedTransitionScope.ExpandedBar(
     Row(
       horizontalArrangement = Arrangement.spacedBy(sizes.componentSpacing),
       verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier.height(56.dp)
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(IntrinsicSize.Max)
     ) {
       if (hasTabGroup) {
         ExpandedTabs(
@@ -635,7 +643,7 @@ private fun SharedTransitionScope.ExpandedBar(
           elevations = elevations,
           animatedVisibilityScope = animatedVisibilityScope,
           tabBarContentModifier = tabBarContentModifier,
-          modifier = Modifier.fillMaxHeight()
+          modifier = Modifier.weight(1f)
         )
       }
 
@@ -647,7 +655,9 @@ private fun SharedTransitionScope.ExpandedBar(
           elevations = elevations,
           animatedVisibilityScope = animatedVisibilityScope,
           tabBarContentModifier = tabBarContentModifier,
-          modifier = Modifier.fillMaxHeight().aspectRatio(1f)
+          modifier = Modifier
+            .fillMaxHeight()
+            .aspectRatio(1f)
         )
       }
     }
@@ -707,14 +717,43 @@ private fun SharedTransitionScope.ExpandedTabs(
   val tabOffsets = remember { mutableStateMapOf<Int, Dp>() }
   val density = LocalDensity.current
 
-  val selectedIndex = scope.tabs.indexOfFirst { it.key == selectedTabKey }.takeIf { it >= 0 } ?: 0
-  val targetWidth = tabWidths[selectedIndex] ?: 0.dp
-  val targetHeight = tabHeights[selectedIndex] ?: 0.dp
-  val targetOffset = tabOffsets[selectedIndex] ?: 0.dp
+  val selectedIndex = scope.tabs.indexOfFirst { it.key == selectedTabKey }
+  val hasSelectedTab = selectedIndex >= 0
+  val safeIndex = if (hasSelectedTab) selectedIndex else 0
 
-  val animatedWidth by animateDpAsState(targetValue = targetWidth, label = "width", animationSpec = spring(stiffness = 500f, dampingRatio = 0.9f))
-  val animatedHeight by animateDpAsState(targetValue = targetHeight, label = "height", animationSpec = spring(stiffness = 500f, dampingRatio = 0.9f))
-  val animatedOffset by animateDpAsState(targetValue = targetOffset, label = "offset", animationSpec = spring(stiffness = 500f, dampingRatio = 0.9f))
+  val targetWidth = if (hasSelectedTab) (tabWidths[safeIndex] ?: 0.dp) else 0.dp
+  val targetOffset = if (hasSelectedTab) (tabOffsets[safeIndex] ?: 0.dp) else 0.dp
+
+  // BitChord physics: GlassSpring with 0.72f damping and 320f stiffness
+  val glassSpring = remember { spring<Float>(dampingRatio = 0.72f, stiffness = 320f) }
+  val targetOffsetPx = with(density) { targetOffset.toPx() }
+  val animatedOffsetPx by animateFloatAsState(
+    targetValue = targetOffsetPx,
+    animationSpec = glassSpring,
+    label = "bitchordPillOffset"
+  )
+
+  val targetWidthPx = with(density) { targetWidth.toPx() }
+  val animatedWidthPx by animateFloatAsState(
+    targetValue = targetWidthPx,
+    animationSpec = glassSpring,
+    label = "bitchordPillWidth"
+  )
+
+  val indicatorAlpha by animateFloatAsState(
+    targetValue = if (hasSelectedTab && animatedWidthPx > 1f) 1f else 0f,
+    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+    label = "bitchordPillAlpha"
+  )
+
+  // BitChord liquid stretch & squash deformation:
+  val STRETCH = 0.16f
+  val SQUASH = 0.5f
+  val lag = if (animatedWidthPx > 0f) {
+    (kotlin.math.abs(targetOffsetPx - animatedOffsetPx) / animatedWidthPx).coerceIn(0f, 1f)
+  } else 0f
+
+  val pillShape = remember { RoundedCornerShape(percent = 50) }
 
   Box(
     contentAlignment = Alignment.CenterStart,
@@ -730,31 +769,48 @@ private fun SharedTransitionScope.ExpandedTabs(
         .clip(shapes.tabBarShape)
         .then(tabBarContentModifier)
         .padding(sizes.tabBarContentPadding)
-        .wrapContentWidth(align = Alignment.Start, unbounded = true)
+        .fillMaxWidth()
         .animateContentSize()
   ) {
-    if (targetWidth > 0.dp) {
+    if (indicatorAlpha > 0f) {
+      val resolvedIndicatorColor = if (colors.indicatorColor.isSpecified) {
+        colors.indicatorColor
+      } else {
+        androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f)
+      }
       Box(
         Modifier
-          .offset(x = animatedOffset)
-          .width(animatedWidth)
-          .height(52.dp)
-          .clip(shapes.tabShape)
-          .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f))
+          .offset(x = with(density) { animatedOffsetPx.toDp() })
+          .width(with(density) { animatedWidthPx.toDp() })
+          .fillMaxHeight()
+          .graphicsLayer {
+            alpha = indicatorAlpha
+            scaleX = 1f + lag * STRETCH
+            scaleY = 1f - lag * STRETCH * SQUASH
+          }
+          .clip(pillShape)
+          .background(resolvedIndicatorColor)
       )
     }
 
     Row(
-      horizontalArrangement = Arrangement.spacedBy(sizes.tabSpacing),
-      verticalAlignment = Alignment.CenterVertically
+      horizontalArrangement = Arrangement.SpaceEvenly,
+      verticalAlignment = Alignment.CenterVertically,
+      modifier = Modifier.fillMaxWidth()
     ) {
       scope.tabs.forEachIndexed { index, tab ->
+        val isSelected = (tab.key == selectedTabKey)
+        val iconScale by animateFloatAsState(
+          targetValue = if (isSelected) 1.08f else 1f,
+          animationSpec = glassSpring,
+          label = "bitchordIconScale"
+        )
         Tab(
-          isSelected = (tab.key == selectedTabKey),
+          isSelected = isSelected,
           icon = {
             Box(
               modifier =
-                if (tab.key == inlineTab?.key) {
+                (if (tab.key == inlineTab?.key) {
                   Modifier.sharedElement(
                     sharedContentState = rememberSharedContentState("tab#${tab.key}-icon"),
                     animatedVisibilityScope = animatedVisibilityScope,
@@ -765,6 +821,9 @@ private fun SharedTransitionScope.ExpandedTabs(
                     sharedTransitionScope = this@ExpandedTabs,
                     animatedVisibilityScope = animatedVisibilityScope
                   )
+                }).graphicsLayer {
+                  scaleX = iconScale
+                  scaleY = iconScale
                 }
             ) {
               tab.icon()
@@ -782,13 +841,15 @@ private fun SharedTransitionScope.ExpandedTabs(
           },
           isInline = false,
           modifier =
-            Modifier.onGloballyPositioned { coords ->
+            Modifier
+              .weight(1f)
+              .onGloballyPositioned { coords ->
                 tabWidths[index] = with(density) { coords.size.width.toDp() }
                 tabHeights[index] = with(density) { coords.size.height.toDp() }
                 tabOffsets[index] = with(density) { coords.positionInParent().x.toDp() }
               }
               .skipToLookaheadSize()
-              .clip(shapes.tabShape)
+              .clip(pillShape)
               .clickable(
                 onClick = tab.onClick,
                 indication = tab.indication?.invoke(),
@@ -844,22 +905,23 @@ private fun Tab(
   isStandalone: Boolean = false,
   isSelected: Boolean = false
 ) {
-  Row(
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.Center,
-    modifier = modifier
-  ) {
-    icon()
-    if (!isStandalone && !isInline) {
-      androidx.compose.animation.AnimatedVisibility(
-        visible = isSelected,
-        enter = androidx.compose.animation.expandHorizontally(expandFrom = Alignment.Start) + androidx.compose.animation.fadeIn(),
-        exit = androidx.compose.animation.shrinkHorizontally(shrinkTowards = Alignment.Start) + androidx.compose.animation.fadeOut()
-      ) {
-        Box(Modifier.padding(start = 4.dp)) {
-          title()
-        }
-      }
+  if (isInline || isStandalone) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.Center,
+      modifier = modifier
+    ) {
+      icon()
+    }
+  } else {
+    Column(
+      verticalArrangement = Arrangement.Center,
+      horizontalAlignment = Alignment.CenterHorizontally,
+      modifier = modifier
+    ) {
+      icon()
+      Spacer(Modifier.height(2.dp))
+      title()
     }
   }
 }
@@ -1017,6 +1079,7 @@ private data class FloatingTabBarTab(
 data class FloatingTabBarColors(
   val backgroundColor: Color,
   val accessoryBackgroundColor: Color,
+  val indicatorColor: Color = Color.Unspecified,
 )
 
 /** Represents the shapes used in [FloatingTabBar]. */
@@ -1052,15 +1115,18 @@ object FloatingTabBarDefaults {
    *
    * @param backgroundColor the color used for the tab bar background
    * @param accessoryBackgroundColor the color used for the accessory background
+   * @param indicatorColor the color used for the tab selection indicator pill
    */
   @Composable
   fun colors(
     backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     accessoryBackgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    indicatorColor: Color = Color.Unspecified,
   ): FloatingTabBarColors =
     FloatingTabBarColors(
       backgroundColor = backgroundColor,
       accessoryBackgroundColor = accessoryBackgroundColor,
+      indicatorColor = indicatorColor,
     )
 
   /**
@@ -1098,9 +1164,9 @@ object FloatingTabBarDefaults {
    */
   @Composable
   fun sizes(
-    tabBarContentPadding: PaddingValues = PaddingValues(vertical = 2.dp, horizontal = 4.dp),
+    tabBarContentPadding: PaddingValues = PaddingValues(6.dp),
     tabInlineContentPadding: PaddingValues = PaddingValues(10.dp),
-    tabExpandedContentPadding: PaddingValues = PaddingValues(vertical = 2.dp, horizontal = 20.dp),
+    tabExpandedContentPadding: PaddingValues = PaddingValues(vertical = 9.dp, horizontal = 8.dp),
     componentSpacing: Dp = 8.dp,
     tabSpacing: Dp = 0.dp,
   ): FloatingTabBarSizes =

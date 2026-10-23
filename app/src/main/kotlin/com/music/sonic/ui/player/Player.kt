@@ -194,6 +194,7 @@ import com.music.sonic.constants.PlayerButtonsStyleKey
 import com.music.sonic.constants.PlayerHorizontalPadding
 import com.music.sonic.constants.QueuePeekHeight
 import com.music.sonic.constants.ShowLyricsOnPlayerKey
+import com.music.sonic.constants.ShowPlayerOptionChipsKey
 import com.music.sonic.constants.SliderStyle
 import com.music.sonic.constants.SliderStyleKey
 import com.music.sonic.constants.SquigglySliderKey
@@ -212,6 +213,8 @@ import com.music.sonic.playback.ExoDownloadService
 import com.music.sonic.ui.component.BottomSheet
 import com.music.sonic.ui.component.BottomSheetState
 import com.music.sonic.ui.component.HeartBurstIcon
+import com.music.sonic.ui.component.GlassComponent
+import com.music.sonic.ui.component.LocalGlassEffectConfig
 import com.music.sonic.ui.component.Icon as MIcon
 import com.music.sonic.ui.component.LocalBottomSheetPageState
 import com.music.sonic.ui.component.LocalMenuState
@@ -279,6 +282,7 @@ fun BottomSheetPlayer(
   navController: NavController,
   modifier: Modifier = Modifier,
   pureBlack: Boolean,
+  hideMiniPlayer: Boolean = false,
 ) {
   val context = LocalContext.current
   val database = LocalDatabase.current
@@ -358,6 +362,7 @@ fun BottomSheetPlayer(
   }
   val swipeLyrics by rememberPreference(SwipeLyricsKey, false)
   val enableLyricsThumbnailPlayPause by rememberPreference(EnableLyricsThumbnailPlayPauseKey, false)
+  val showPlayerOptionChips by rememberPreference(ShowPlayerOptionChipsKey, true)
   val isKeepScreenOn by rememberPreference(KeepScreenOn, false)
   val keepScreenOn = isPlaying && isKeepScreenOn
 
@@ -726,14 +731,16 @@ fun BottomSheetPlayer(
 
       val validated =
         fetched?.let { artwork ->
-          val localArtists = splitAndNormalizeArtists(requestedArtist)
-          val returnedArtists = splitAndNormalizeArtists(artwork.artist ?: "")
+          val returnedArtist = artwork.artist
+          // Allow null artist (Apple Music/Tidal often returns null), or use relaxed match
           val artistMatches =
-            localArtists.isNotEmpty() &&
-              returnedArtists.isNotEmpty() &&
-              (localArtists.any { local ->
-                returnedArtists.any { it.equals(local, ignoreCase = true) }
-              })
+            returnedArtist.isNullOrBlank() ||
+              requestedArtist.isBlank() ||
+              returnedArtist.contains(requestedArtist, ignoreCase = true) ||
+              requestedArtist.contains(returnedArtist, ignoreCase = true) ||
+              splitAndNormalizeArtists(requestedArtist).any { local ->
+                splitAndNormalizeArtists(returnedArtist).any { it.equals(local, ignoreCase = true) }
+              }
 
           if (artistMatches) artwork else null
         }
@@ -966,7 +973,16 @@ fun BottomSheetPlayer(
 
   BottomSheet(
     state = state,
-    modifier = modifier,
+    modifier =
+      modifier.then(
+        if (hideMiniPlayer) {
+          Modifier.graphicsLayer {
+            alpha = if (state.isCollapsed) 0f else 1f
+          }
+        } else {
+          Modifier
+        }
+      ),
     background = {
       val backgroundThumbnailUrl =
         mediaMetadata?.thumbnailUrl
@@ -1195,6 +1211,7 @@ fun BottomSheetPlayer(
                   modifier =
                     Modifier.fillMaxSize().graphicsLayer { alpha = backgroundAlphaProvider() }
                 ) {
+                  // Blurred background (always shown)
                   AsyncImage(
                     model =
                       ImageRequest.Builder(context)
@@ -1207,6 +1224,18 @@ fun BottomSheetPlayer(
                     modifier = Modifier.fillMaxSize().blur(150.dp)
                   )
 
+                  // ── Canvas / animated cover (fills full background) ──────
+                  if (enableCanvas && canvasArtwork != null && showCanvas) {
+                    val canvasUrl = canvasArtwork?.animated ?: canvasArtwork?.videoUrl ?: ""
+                    if (canvasUrl.isNotBlank()) {
+                      BackgroundVideoView(
+                        videoUrl = canvasUrl,
+                        isPlaying = isPlaying,
+                        modifier = Modifier.fillMaxSize()
+                      )
+                    }
+                  }
+
                   val clearArtworkAlpha by
                     animateFloatAsState(
                       targetValue = if (showInlineLyrics) 0f else 1f,
@@ -1214,50 +1243,45 @@ fun BottomSheetPlayer(
                       label = "clearArtworkAlpha"
                     )
 
-                  Box(
-                    modifier =
-                      Modifier.fillMaxWidth()
-                        .fillMaxHeight(0.65f)
-                        .alpha(clearArtworkAlpha)
-                        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                        .drawWithContent {
-                          drawContent()
-
-                          drawRect(
-                            brush =
-                              Brush.verticalGradient(
-                                colorStops =
-                                  arrayOf(
-                                    0.00f to Color.Black,
-                                    0.75f to Color.Black,
-                                    0.92f to Color.Black.copy(alpha = 0.4f),
-                                    1.00f to Color.Transparent,
-                                  )
-                              ),
-                            blendMode = BlendMode.DstIn
-                          )
-                        }
-                  ) {
-                    AsyncImage(
-                      model =
-                        ImageRequest.Builder(context)
-                          .data(thumbnailUrl)
-                          .size(CoilSize.ORIGINAL)
-                          .build(),
-                      contentDescription = null,
-                      contentScale = ContentScale.Crop,
-                      modifier = Modifier.fillMaxSize()
-                    )
-
-                    if (enableCanvas && canvasArtwork != null && showCanvas) {
-                      BackgroundVideoView(
-                        videoUrl = canvasArtwork?.animated ?: canvasArtwork?.videoUrl ?: "",
-                        isPlaying = isPlaying,
+                  // Clear album art in top 65% with fade-out gradient (static image only)
+                  if (!enableCanvas || canvasArtwork == null) {
+                    Box(
+                      modifier =
+                        Modifier.fillMaxWidth()
+                          .fillMaxHeight(0.65f)
+                          .alpha(clearArtworkAlpha)
+                          .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                          .drawWithContent {
+                            drawContent()
+                            drawRect(
+                              brush =
+                                Brush.verticalGradient(
+                                  colorStops =
+                                    arrayOf(
+                                      0.00f to Color.Black,
+                                      0.75f to Color.Black,
+                                      0.92f to Color.Black.copy(alpha = 0.4f),
+                                      1.00f to Color.Transparent,
+                                    )
+                                ),
+                              blendMode = BlendMode.DstIn
+                            )
+                          }
+                    ) {
+                      AsyncImage(
+                        model =
+                          ImageRequest.Builder(context)
+                            .data(thumbnailUrl)
+                            .size(CoilSize.ORIGINAL)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                       )
                     }
                   }
 
+                  // Gradient scrim on top for text readability
                   Box(
                     modifier =
                       Modifier.fillMaxSize()
@@ -1409,11 +1433,13 @@ fun BottomSheetPlayer(
       playerConnection.service.clearPersistedQueueFiles()
     },
     collapsedContent = {
-      MiniPlayer(
-        positionState = positionState,
-        durationState = durationState,
-        onClick = { state.expandSoft() }
-      )
+      if (!hideMiniPlayer) {
+        MiniPlayer(
+          positionState = positionState,
+          durationState = durationState,
+          onClick = { state.expandSoft() }
+        )
+      }
     },
   ) {
     val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
@@ -1668,82 +1694,107 @@ fun BottomSheetPlayer(
       if (playerBackground == PlayerBackgroundStyle.APPLE_MUSIC) {
         Spacer(Modifier.height(28.dp))
       } else {
-        Spacer(Modifier.height(16.dp))
+        if (showPlayerOptionChips) {
+          Spacer(Modifier.height(16.dp))
 
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = PlayerHorizontalPadding),
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          val isLiked = currentSong?.song?.liked == true
-          PlayerPillChip(
-            iconRes = if (isLiked) R.drawable.favorite else R.drawable.favorite_border,
-            label = if (isLiked) "Liked" else "Like",
-            isSelected = isLiked,
-            onClick = playerConnection::toggleLike,
-            contentColor = TextBackgroundColor
-          )
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .horizontalScroll(rememberScrollState())
+              .padding(horizontal = PlayerHorizontalPadding),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            val isLiked = currentSong?.song?.liked == true
+            PlayerPillChip(
+              iconRes = if (isLiked) R.drawable.favorite else R.drawable.favorite_border,
+              label = if (isLiked) "Liked" else "Like",
+              isSelected = isLiked,
+              onClick = playerConnection::toggleLike,
+              contentColor = TextBackgroundColor
+            )
 
-          PlayerPillChip(
-            iconRes = R.drawable.lyrics,
-            label = "Lyrics",
-            isSelected = showInlineLyrics,
-            onClick = { showInlineLyrics = !showInlineLyrics },
-            contentColor = TextBackgroundColor
-          )
+            PlayerPillChip(
+              iconRes = R.drawable.lyrics,
+              label = "Lyrics",
+              isSelected = showInlineLyrics,
+              onClick = { showInlineLyrics = !showInlineLyrics },
+              contentColor = TextBackgroundColor
+            )
 
-          val isDownloaded = download?.state == Download.STATE_COMPLETED
-          val isDownloading = download?.state == Download.STATE_DOWNLOADING || download?.state == Download.STATE_QUEUED
-          val downloadLabel = when {
-            isDownloaded -> "Downloaded"
-            isDownloading -> "Downloading..."
-            else -> "Download"
+            val isDownloaded = download?.state == Download.STATE_COMPLETED
+            val isDownloading = download?.state == Download.STATE_DOWNLOADING || download?.state == Download.STATE_QUEUED
+            val downloadLabel = when {
+              isDownloaded -> "Downloaded"
+              isDownloading -> "Downloading..."
+              else -> "Download"
+            }
+            PlayerPillChip(
+              iconRes = if (isDownloaded) R.drawable.offline else R.drawable.download,
+              label = downloadLabel,
+              isSelected = isDownloaded || isDownloading,
+              onClick = {
+                mediaMetadata.let { meta ->
+                  when (download?.state) {
+                    Download.STATE_COMPLETED, Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
+                      DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, meta.id, false)
+                    }
+                    else -> {
+                      database.transaction { insert(meta) }
+                      val downloadRequest = DownloadRequest.Builder(meta.id, meta.id.toUri())
+                        .setCustomCacheKey(meta.id)
+                        .setData(meta.title.toByteArray())
+                        .build()
+                      DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
+                    }
+                  }
+                }
+              },
+              contentColor = TextBackgroundColor
+            )
+
+            PlayerPillChip(
+              iconRes = R.drawable.chat_msg,
+              label = "Comments",
+              onClick = {
+                menuState.show {
+                  PlayerMenu(
+                    mediaMetadata = mediaMetadata,
+                    navController = navController,
+                    playerBottomSheetState = state,
+                    onShowDetailsDialog = {
+                      mediaMetadata?.id?.let {
+                        bottomSheetPageState.show { ShowMediaInfo(it) }
+                      }
+                    },
+                    onDismiss = menuState::dismiss
+                  )
+                }
+              },
+              contentColor = TextBackgroundColor
+            )
+
+            PlayerPillChip(
+              iconRes = R.drawable.share,
+              label = "Share",
+              onClick = {
+                mediaMetadata.let { meta ->
+                  val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, "Listening to ${meta.title} by ${meta.artists.joinToString { it.name }} on Echo Music: https://music.youtube.com/watch?v=${meta.id}")
+                    type = "text/plain"
+                  }
+                  context.startActivity(Intent.createChooser(shareIntent, "Share Track"))
+                }
+              },
+              contentColor = TextBackgroundColor
+            )
           }
-          PlayerPillChip(
-            iconRes = if (isDownloaded) R.drawable.offline else R.drawable.download,
-            label = downloadLabel,
-            isSelected = isDownloaded || isDownloading,
-            onClick = {
-              mediaMetadata.let { meta ->
-                when (download?.state) {
-                  Download.STATE_COMPLETED, Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                    DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, meta.id, false)
-                  }
-                  else -> {
-                    database.transaction { insert(meta) }
-                    val downloadRequest = DownloadRequest.Builder(meta.id, meta.id.toUri())
-                      .setCustomCacheKey(meta.id)
-                      .setData(meta.title.toByteArray())
-                      .build()
-                    DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
-                  }
-                }
-              }
-            },
-            contentColor = TextBackgroundColor
-          )
 
-          PlayerPillChip(
-            iconRes = R.drawable.share,
-            label = "Share",
-            onClick = {
-              mediaMetadata.let { meta ->
-                val shareIntent = Intent().apply {
-                  action = Intent.ACTION_SEND
-                  putExtra(Intent.EXTRA_TEXT, "Listening to ${meta.title} by ${meta.artists.joinToString { it.name }} on Echo Music: https://music.youtube.com/watch?v=${meta.id}")
-                  type = "text/plain"
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Share Track"))
-              }
-            },
-            contentColor = TextBackgroundColor
-          )
+          Spacer(Modifier.height(14.dp))
+        } else {
+          Spacer(Modifier.height(28.dp))
         }
-
-        Spacer(Modifier.height(14.dp))
       }
 
       when (sliderStyle) {
@@ -2143,7 +2194,7 @@ fun BottomSheetPlayer(
 
       automixDebugOverlay()
 
-      Spacer(Modifier.height(if (useNewPlayerDesign) 12.dp else 4.dp))
+      Spacer(Modifier.height(if (showPlayerOptionChips) (if (useNewPlayerDesign) 12.dp else 4.dp) else (if (useNewPlayerDesign) 24.dp else 16.dp)))
 
       AnimatedVisibility(
         visible = !isFullScreen,
@@ -2398,7 +2449,7 @@ fun BottomSheetPlayer(
             }
 
             if (!hidePlayerSlider) {
-              Spacer(modifier = Modifier.height(8.dp))
+              Spacer(modifier = Modifier.height(if (showPlayerOptionChips) 8.dp else 18.dp))
 
               Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -2555,6 +2606,21 @@ fun BottomSheetPlayer(
       }
     }
 
+    val isMenuVisible = menuState.isVisible || bottomSheetPageState.isVisible
+    val queueProgress = queueSheetState.progress.coerceIn(0f, 1f)
+    val targetBlur = when {
+      isMenuVisible -> 24.dp
+      queueSheetState.isExpanded -> 28.dp
+      queueProgress > 0f -> (queueProgress * 28).dp
+      else -> 0.dp
+    }
+    val playerBlur by
+      animateDpAsState(
+        targetValue = targetBlur,
+        label = "playerBlur",
+        animationSpec = tween(durationMillis = 220)
+      )
+
     when (LocalConfiguration.current.orientation) {
       Configuration.ORIENTATION_LANDSCAPE -> {
 
@@ -2576,6 +2642,7 @@ fun BottomSheetPlayer(
                 WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).add(verticalWindowInsets)
               )
               .padding(bottom = 24.dp)
+              .blur(playerBlur)
               .fillMaxSize()
         ) {
           Box(
@@ -2642,6 +2709,7 @@ fun BottomSheetPlayer(
           modifier =
             Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
               .padding(bottom = bottomPadding)
+              .blur(playerBlur)
               .animateContentSize(),
         ) {
           Box(
@@ -2690,6 +2758,9 @@ fun BottomSheetPlayer(
       }
     }
 
+    val glassConfig = LocalGlassEffectConfig.current
+    val useGlass = glassConfig.globalEnabled && glassConfig.isEnabledFor(GlassComponent.PLAYER)
+
     AnimatedVisibility(
       visible = !isFullScreen,
       enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -2703,7 +2774,9 @@ fun BottomSheetPlayer(
         playerBottomSheetState = state,
         navController = navController,
         background =
-          if (useBlackBackground) {
+          if (useGlass) {
+            Color.Transparent
+          } else if (useBlackBackground) {
             Color.Black
           } else {
             MaterialTheme.colorScheme.surface

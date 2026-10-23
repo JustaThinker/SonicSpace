@@ -7,11 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.music.innertube.YouTube
 import com.music.innertube.models.BrowseEndpoint
 import com.music.innertube.models.filterExplicit
-import com.music.innertube.models.filterVideoSongs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.music.sonic.constants.HideExplicitKey
-import com.music.sonic.constants.HideVideoSongsKey
 import com.music.sonic.models.ItemsPage
 import com.music.sonic.utils.dataStore
 import com.music.sonic.utils.get
@@ -44,15 +42,13 @@ constructor(
         )
         .onSuccess { artistItemsPage ->
           val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-          val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
           title.value = artistItemsPage.title
           itemsPage.value =
             ItemsPage(
               items =
                 artistItemsPage.items
                   .distinctBy { it.id }
-                  .filterExplicit(hideExplicit)
-                  .filterVideoSongs(hideVideoSongs),
+                  .filterExplicit(hideExplicit),
               continuation = artistItemsPage.continuation,
             )
         }
@@ -67,14 +63,12 @@ constructor(
       YouTube.artistItemsContinuation(continuation)
         .onSuccess { artistItemsContinuationPage ->
           val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-          val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
           itemsPage.update {
             ItemsPage(
               items =
                 (oldItemsPage.items + artistItemsContinuationPage.items)
                   .distinctBy { it.id }
-                  .filterExplicit(hideExplicit)
-                  .filterVideoSongs(hideVideoSongs),
+                  .filterExplicit(hideExplicit),
               continuation = artistItemsContinuationPage.continuation,
             )
           }

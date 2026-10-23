@@ -955,8 +955,8 @@ object YTPlayerUtils {
       )
 
     var availableFormats = playerResponse.streamingData?.adaptiveFormats?.filter { it.isAudio && it.isOriginal } ?: emptyList()
-    
-    // Explicitly force Opus/WebM if enabled and available
+
+    // forceOpus flag (user setting) takes absolute priority — always filter to WebM
     if (forceOpusEnabled) {
       val opusFormats = availableFormats.filter { it.mimeType.contains("audio/webm") }
       if (opusFormats.isNotEmpty()) {
@@ -965,7 +965,16 @@ object YTPlayerUtils {
       }
     }
 
-    val format = availableFormats.maxByOrNull { it.bitrate * 1 + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) }
+    // For HIGH / LOSSLESS: pick strictly the highest bitrate stream, no container bias.
+    // For OPUS / YOUTUBE_ONLY: keep original WebM preference (+10240 bonus).
+    val useStrictBitrate = !forceOpusEnabled && (
+      audioQuality == AudioQuality.LOSSLESS || audioQuality == AudioQuality.HIGH
+    )
+    val format = if (useStrictBitrate) {
+      availableFormats.maxByOrNull { it.bitrate }
+    } else {
+      availableFormats.maxByOrNull { it.bitrate + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) }
+    }
 
     if (format != null) {
       Timber.tag(logTag).d("Selected format: ${format.mimeType}, bitrate: ${format.bitrate}")

@@ -106,8 +106,10 @@ fun AnimatedBottomSheet(
     dragHandle = dragHandle,
     contentWindowInsets = contentWindowInsets,
     properties = properties,
-    content = lastContent,
-  )
+  ) {
+    ApplyWindowBlurBehind(blurRadiusPx = 60)
+    lastContent()
+  }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,6 +121,16 @@ fun BottomSheetMenu(
 ) {
   val focusManager = LocalFocusManager.current
   val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+  val glassConfig = LocalGlassEffectConfig.current
+  val useGlass = glassConfig.globalEnabled
+  val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+
+  val resolvedBackground = if (useGlass) {
+    glassConfig.resolveSurfaceTintColor().copy(alpha = glassConfig.surfaceOpacity.coerceAtLeast(0.75f))
+  } else {
+    background
+  }
+  val resolvedContentColor = if (useGlass) glassConfig.resolveTextColor() else MaterialTheme.colorScheme.onSurface
 
   AnimatedBottomSheet(
     isVisible = state.isVisible,
@@ -127,15 +139,19 @@ fun BottomSheetMenu(
       state.isVisible = false
     },
     sheetState = sheetState,
-    containerColor = background,
-    contentColor = MaterialTheme.colorScheme.onSurface,
+    shape = sheetShape,
+    containerColor = resolvedBackground,
+    contentColor = resolvedContentColor,
     dragHandle = {
       Box(
         modifier =
           Modifier.padding(vertical = 12.dp)
             .size(width = 40.dp, height = 4.dp)
             .clip(RoundedCornerShape(2.dp))
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            .background(
+              if (useGlass) resolvedContentColor.copy(alpha = 0.4f)
+              else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            )
       )
     },
     modifier = modifier.fillMaxHeight()

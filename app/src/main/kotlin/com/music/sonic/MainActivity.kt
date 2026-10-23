@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -88,6 +89,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -166,6 +168,7 @@ import com.music.sonic.ui.component.GlassComponent
 import com.music.sonic.ui.component.LocalGlassEffectConfig
 import com.music.sonic.ui.component.LocalAppBackdrop
 import com.music.sonic.ui.component.isGlassSupported
+import com.music.sonic.ui.component.resolveTextColor
 import com.music.sonic.ui.component.liquidGlass
 import com.music.sonic.ui.component.backdrop.backdrops.layerBackdrop
 import com.music.sonic.constants.LiquidGlassGlobalEnabledKey
@@ -196,6 +199,7 @@ import com.music.sonic.constants.StopMusicOnTaskClearKey
 import com.music.sonic.constants.*
 import com.music.sonic.constants.UseNewMiniPlayerDesignKey
 import com.music.sonic.db.MusicDatabase
+import com.music.sonic.listentogether.ListenTogetherManager
 import com.music.sonic.db.entities.SearchHistory
 import com.music.sonic.echomusic.UpdateNotificationHelper
 import com.music.sonic.echomusic.updater.checkForUpdate
@@ -214,6 +218,7 @@ import com.music.sonic.ui.component.*
 import com.music.sonic.ui.component.AppFloatingNavBar
 import com.music.sonic.ui.component.RingtoneProgressDialog
 import com.music.sonic.ui.component.RingtoneTrimmerDialog
+import com.music.sonic.ui.component.floatingtabbar.FloatingTabBarInlineBehavior
 import com.music.sonic.ui.component.floatingtabbar.rememberFloatingTabBarScrollConnection
 import com.music.sonic.ui.component.shimmer.getShimmerTheme
 import com.music.sonic.ui.menu.YouTubeSongMenu
@@ -229,6 +234,7 @@ import com.music.sonic.ui.theme.ColorSaver
 import com.music.sonic.ui.theme.DefaultThemeColor
 import com.music.sonic.ui.theme.echomusicTheme
 import com.music.sonic.ui.theme.extractThemeColor
+import com.music.sonic.ui.theme.extractWallpaperThemeColor
 import com.music.sonic.ui.utils.appBarScrollBehavior
 import com.music.sonic.ui.utils.resetHeightOffset
 import com.music.sonic.utils.SyncUtils
@@ -272,7 +278,7 @@ class MainActivity : ComponentActivity() {
   @Inject lateinit var syncUtils: SyncUtils
 
   @Inject
-  lateinit var listenTogetherManager: com.music.sonic.listentogether.ListenTogetherManager
+  lateinit var listenTogetherManager: ListenTogetherManager
   private lateinit var navController: NavHostController
   private var pendingIntent: Intent? = null
 
@@ -545,25 +551,39 @@ class MainActivity : ComponentActivity() {
 
     LaunchedEffect(enableHighRefreshRate) {
       val window = this@MainActivity.window
+      val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        this@MainActivity.display
+      } else {
+        @Suppress("DEPRECATION")
+        window.windowManager.defaultDisplay
+      }
+      val modes = display?.supportedModes ?: emptyArray()
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         val layoutParams = window.attributes
         if (enableHighRefreshRate) {
-          layoutParams.preferredDisplayModeId = 0
+          val highestMode = modes.maxByOrNull { it.refreshRate }
+          if (highestMode != null) {
+            layoutParams.preferredDisplayModeId = highestMode.modeId
+            layoutParams.preferredRefreshRate = highestMode.refreshRate
+          } else {
+            layoutParams.preferredDisplayModeId = 0
+          }
         } else {
-          val modes = window.windowManager.defaultDisplay.supportedModes
           val mode60 =
             modes.firstOrNull { kotlin.math.abs(it.refreshRate - 60f) < 1f }
               ?: modes.minByOrNull { kotlin.math.abs(it.refreshRate - 60f) }
 
           if (mode60 != null) {
             layoutParams.preferredDisplayModeId = mode60.modeId
+            layoutParams.preferredRefreshRate = mode60.refreshRate
           }
         }
         window.attributes = layoutParams
       } else {
         val params = window.attributes
         if (enableHighRefreshRate) {
-          params.preferredRefreshRate = 0f
+          val highestRate = modes.maxOfOrNull { it.refreshRate } ?: 0f
+          params.preferredRefreshRate = highestRate
         } else {
           params.preferredRefreshRate = 60f
         }
@@ -583,12 +603,20 @@ class MainActivity : ComponentActivity() {
     val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
     val pureBlack = remember(pureBlackEnabled, useDarkTheme) { pureBlackEnabled && useDarkTheme }
 
+    val (hasSeenOnboarding, setHasSeenOnboarding) =
+      rememberPreference(HasSeenOnboardingKey, defaultValue = false)
+
     val (selectedThemeColorInt) =
       rememberPreference(SelectedThemeColorKey, defaultValue = DefaultThemeColor.toArgb())
     val selectedThemeColor = Color(selectedThemeColorInt)
 
+    val (liquidGlassGlobalEnabled) =
+      rememberPreference(LiquidGlassGlobalEnabledKey, defaultValue = false)
+    val (bitChordPaletteEnabled) =
+      rememberPreference(BitChordPaletteKey, defaultValue = false)
+    val isBitChordActive = liquidGlassGlobalEnabled || bitChordPaletteEnabled
     val (dynamicThemePref) = rememberPreference(DynamicThemeKey, defaultValue = true)
-    val enableDynamicTheme = dynamicThemePref
+    val enableDynamicTheme = dynamicThemePref && !isBitChordActive
 
     var themeColor by
       rememberSaveable(stateSaver = ColorSaver) { mutableStateOf(selectedThemeColor) }
@@ -628,7 +656,12 @@ class MainActivity : ComponentActivity() {
             }
           }
         } else {
-          themeColor = selectedThemeColor
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            themeColor = selectedThemeColor
+          } else {
+            val wallpaperColor = extractWallpaperThemeColor(this@MainActivity)
+            themeColor = wallpaperColor ?: selectedThemeColor
+          }
         }
       }
     }
@@ -642,21 +675,27 @@ class MainActivity : ComponentActivity() {
     val view = LocalView.current
     var lastScrollHapticTime by remember { mutableStateOf(0L) }
 
-    val dynamicAlbumColor = remember(enableDynamicTheme, themeColor, selectedThemeColor) {
-      if (enableDynamicTheme && themeColor != DefaultThemeColor) {
-        themeColor.toArgb()
-      } else if (!enableDynamicTheme && selectedThemeColor != DefaultThemeColor) {
+    val dynamicAlbumColor = remember(enableDynamicTheme, themeColor, selectedThemeColor, isBitChordActive) {
+      if (!isBitChordActive && enableDynamicTheme) {
+        if (themeColor != selectedThemeColor || themeColor != DefaultThemeColor) themeColor.toArgb() else null
+      } else if (!isBitChordActive && !enableDynamicTheme && selectedThemeColor != DefaultThemeColor) {
         selectedThemeColor.toArgb()
       } else {
         null
       }
     }
 
+    val (appFont) = rememberPreference(AppFontKey, defaultValue = "GOOGLE_SANS")
+
     echomusicTheme(
       darkTheme = useDarkTheme,
       pureBlack = pureBlack,
       dynamicAlbumColor = dynamicAlbumColor,
       themeColor = themeColor,
+      liquidGlassEnabled = liquidGlassGlobalEnabled,
+      bitChordPaletteEnabled = bitChordPaletteEnabled,
+      enableDynamicTheme = enableDynamicTheme,
+      appFont = appFont,
     ) {
       if (showUpdateDialog) {
         com.music.sonic.echomusic.component.UpdateAvailableDialog(
@@ -780,11 +819,13 @@ class MainActivity : ComponentActivity() {
 
         val shouldShowNavigationBar =
           remember(currentRoute, navigationItemRoutes) {
-            currentRoute == null || navigationItemRoutes.contains(currentRoute)
+            currentRoute == null ||
+              navigationItemRoutes.contains(currentRoute) ||
+              currentRoute?.startsWith("search") == true
           }
 
         LaunchedEffect(currentRoute) {
-          if (navigationItemRoutes.contains(currentRoute)) {
+          if (navigationItemRoutes.contains(currentRoute) || currentRoute?.startsWith("search") == true) {
             showBottomNavWithAnimation()
           }
         }
@@ -816,12 +857,17 @@ class MainActivity : ComponentActivity() {
           )
 
         val (useFloatingNavBar) = rememberPreference(UseFloatingNavBarKey, defaultValue = false)
-        val floatingNavBarScrollConnection = rememberFloatingTabBarScrollConnection()
+        val (liquidGlassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+        val navBarGlassActive = liquidGlassGlobalEnabled && liquidGlassNavBarEnabled
+        val shouldUseFloatingBar = navBarGlassActive || useFloatingNavBar
+        val floatingNavBarScrollConnection = rememberFloatingTabBarScrollConnection(
+          inlineBehavior = FloatingTabBarInlineBehavior.Never
+        )
 
-        val navBarScrollConnection = remember(isLandscape) {
+        val navBarScrollConnection = remember(isLandscape, shouldUseFloatingBar) {
           object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-              if (!isLandscape) {
+              if (!isLandscape && !shouldUseFloatingBar) {
                 if (available.y < -10f) {
                   if (isBottomNavVisible) {
                     hideBottomNavWithAnimation()
@@ -840,7 +886,7 @@ class MainActivity : ComponentActivity() {
               available: Offset,
               source: NestedScrollSource
             ): Offset {
-              if (!isLandscape) {
+              if (!isLandscape && !shouldUseFloatingBar) {
                 if (consumed.y < -10f) {
                   if (isBottomNavVisible) {
                     hideBottomNavWithAnimation()
@@ -860,14 +906,10 @@ class MainActivity : ComponentActivity() {
           rememberBottomSheetState(
             dismissedBound = 0.dp,
             collapsedBound =
-              if (useFloatingNavBar && !showRail && shouldShowNavigationBar) {
-                0.dp
-              } else {
-                bottomInset +
-                  (if (!showRail && shouldShowNavigationBar) navPadding else 0.dp) +
-                  (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
-                  MiniPlayerHeight
-              },
+              bottomInset +
+                (if (!showRail && shouldShowNavigationBar) navPadding else 0.dp) +
+                (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
+                MiniPlayerHeight,
             expandedBound = maxHeight,
           )
 
@@ -908,7 +950,7 @@ class MainActivity : ComponentActivity() {
 
         val playerMediaMetadata = playerConnection?.player?.currentMediaItem?.mediaMetadata
         val hasDockedPlayerAccessory =
-          useFloatingNavBar && playerMediaMetadata != null && !showRail && shouldShowNavigationBar
+          shouldUseFloatingBar && playerMediaMetadata != null && !showRail && shouldShowNavigationBar
 
         val playerAwareWindowInsets =
           remember(
@@ -1079,8 +1121,7 @@ class MainActivity : ComponentActivity() {
 
         val baseBg = if (pureBlack) Color.Black else if (useDarkTheme) Color(0xFF121212) else MaterialTheme.colorScheme.surface
 
-        val (liquidGlassGlobalEnabled) = rememberPreference(LiquidGlassGlobalEnabledKey, defaultValue = false)
-        val (liquidGlassVibrancy) = rememberPreference(LiquidGlassVibrancyKey, defaultValue = 1f)
+        val (liquidGlassVibrancy) = rememberPreference(LiquidGlassVibrancyKey, defaultValue = 1.0f)
         val (liquidGlassBlurRadius) = rememberPreference(LiquidGlassBlurRadiusKey, defaultValue = 8f)
         val (liquidGlassLensHeight) = rememberPreference(LiquidGlassLensHeightKey, defaultValue = 0.5f)
         val (liquidGlassLensAmount) = rememberPreference(LiquidGlassLensAmountKey, defaultValue = 0.5f)
@@ -1091,7 +1132,6 @@ class MainActivity : ComponentActivity() {
         val (liquidGlassTextColorInt) = rememberPreference(LiquidGlassTextColorKey, defaultValue = 0)
         val (liquidGlassPlayerEnabled) = rememberPreference(LiquidGlassPlayerEnabledKey, defaultValue = true)
         val (liquidGlassMiniPlayerEnabled) = rememberPreference(LiquidGlassMiniPlayerEnabledKey, defaultValue = true)
-        val (liquidGlassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
 
         val glassEffectConfig = remember(
             liquidGlassGlobalEnabled, useFloatingNavBar, liquidGlassVibrancy, liquidGlassBlurRadius,
@@ -1101,7 +1141,7 @@ class MainActivity : ComponentActivity() {
             liquidGlassMiniPlayerEnabled, liquidGlassNavBarEnabled,
         ) {
             GlassEffectConfig(
-                globalEnabled = liquidGlassGlobalEnabled && useFloatingNavBar,
+                globalEnabled = liquidGlassGlobalEnabled,
                 vibrancy = liquidGlassVibrancy,
                 blurRadius = liquidGlassBlurRadius,
                 lensHeight = liquidGlassLensHeight,
@@ -1121,7 +1161,6 @@ class MainActivity : ComponentActivity() {
           val topAppBarBackgroundColor = when {
             topAppBarGlassEnabled -> Color.Transparent
             pureBlack -> Color.Black
-            useDarkTheme -> Color(0xFF121212)
             else -> MaterialTheme.colorScheme.surface
           }
           val topAppBarScrollRangePx = remember(density) { with(density) { 56.dp.toPx() } }
@@ -1139,13 +1178,7 @@ class MainActivity : ComponentActivity() {
           val animatedTopAppBarBgColor = remember(topAppBarBackgroundColor, animatedTopAppBarScrollFraction) {
             topAppBarBackgroundColor.copy(alpha = topAppBarBackgroundColor.alpha * animatedTopAppBarScrollFraction)
           }
-          val topAppBarAdaptiveTextColor = if (glassEffectConfig.textColor.isSpecified) {
-            glassEffectConfig.textColor
-          } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-            Color.Black
-          } else {
-            Color.White
-          }
+          val topAppBarAdaptiveTextColor = glassEffectConfig.resolveTextColor()
           val topAppBarTitleColor = when {
             topAppBarGlassEnabled -> topAppBarAdaptiveTextColor
             pureBlack -> Color.White
@@ -1154,7 +1187,7 @@ class MainActivity : ComponentActivity() {
           val topAppBarIconColor = when {
             topAppBarGlassEnabled -> topAppBarAdaptiveTextColor
             pureBlack -> Color.White
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
+            else -> MaterialTheme.colorScheme.onSurface
           }
         
         val appBackdrop = rememberLayerBackdrop {
@@ -1164,9 +1197,6 @@ class MainActivity : ComponentActivity() {
 
         val ringtoneViewModel: RingtoneViewModel = viewModel()
         val ringtoneUiState by ringtoneViewModel.uiState.collectAsState()
-
-        val (hasSeenOnboarding, setHasSeenOnboarding) =
-          rememberPreference(HasSeenOnboardingKey, defaultValue = false)
 
         CompositionLocalProvider(
           LocalGlassEffectConfig provides glassEffectConfig,
@@ -1210,7 +1240,6 @@ class MainActivity : ComponentActivity() {
                         Image(
                           painter = painterResource(R.drawable.ic_launcher_foreground),
                           contentDescription = "SonicSpace Logo",
-                          colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                           modifier = Modifier.size(44.dp),
                         )
                       } else if (currentTitle.isNotEmpty()) {
@@ -1364,116 +1393,108 @@ class MainActivity : ComponentActivity() {
                     label = "navElevation"
                   )
 
-                  val showBottomBar = shouldShowNavigationBar && isBottomNavVisible
+                  val showBottomBar = if (shouldUseFloatingBar) shouldShowNavigationBar else (shouldShowNavigationBar && isBottomNavVisible)
                   val navigationBarsHeightPx = WindowInsets.navigationBars.getBottom(density).toFloat()
                   val bottomNavHeightPx = with(density) { navBarHeight.toPx() }
-                  val totalSlideDistPx = bottomNavHeightPx + navigationBarsHeightPx
 
-                  val baseTargetTranslation = if (showBottomBar) 0f else totalSlideDistPx
+                  val navBarSlideDistPx = bottomNavHeightPx + navigationBarsHeightPx
+                  val miniPlayerSlideDistPx = if (shouldUseFloatingBar) 0f else bottomNavHeightPx
 
-                  val animatedBaseTranslationState = animateFloatAsState(
-                    targetValue = baseTargetTranslation,
+                  val navBarTargetTranslation = if (showBottomBar) 0f else navBarSlideDistPx
+                  val miniPlayerTargetTranslation = if (shouldUseFloatingBar) {
+                    if (shouldShowNavigationBar) 0f else (bottomNavHeightPx + navigationBarsHeightPx + with(density) { 56.dp.toPx() })
+                  } else {
+                    if (isBottomNavVisible) 0f else miniPlayerSlideDistPx
+                  }
+
+                  val animatedNavBarTranslation = animateFloatAsState(
+                    targetValue = navBarTargetTranslation,
                     animationSpec = spring(
                       dampingRatio = 0.85f,
                       stiffness = Spring.StiffnessLow
                     ),
-                    label = "BottomNavTranslationY"
+                    label = "NavBarTranslationY"
                   )
+
+                  val animatedMiniPlayerTranslation = animateFloatAsState(
+                    targetValue = miniPlayerTargetTranslation,
+                    animationSpec = spring(
+                      dampingRatio = 0.85f,
+                      stiffness = Spring.StiffnessLow
+                    ),
+                    label = "MiniPlayerTranslationY"
+                  )
+
+                  val navBarGlassEnabled = glassEffectConfig.isEnabledFor(GlassComponent.NAV_BAR)
 
                   BottomSheetPlayer(
                     state = playerBottomSheetState,
                     navController = navController,
                     pureBlack = pureBlack,
+                    hideMiniPlayer = hasDockedPlayerAccessory,
                     modifier = Modifier.graphicsLayer {
                       val progress = playerBottomSheetState.progress.coerceIn(0f, 1f)
                       val shiftFraction = (1f - progress * 10f).coerceIn(0f, 1f)
-                      this.translationY = animatedBaseTranslationState.value * shiftFraction
+                      this.translationY = animatedMiniPlayerTranslation.value * shiftFraction
                     }
                   )
 
-                  val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                  val onSearchLongClick = remember(navController) {
+                    { navController.navigate("recognition") { launchSingleTop = true } }
+                  }
 
-                  NavigationBar(
-                    modifier = Modifier
-                      .align(Alignment.BottomCenter)
-                      .graphicsLayer {
-                        val currentBase = animatedBaseTranslationState.value
-                        val playerProgress = playerBottomSheetState.progress.coerceIn(0f, 1f)
-                        val translationY = (currentBase + (totalSlideDistPx * playerProgress)).coerceAtMost(totalSlideDistPx)
-                        this.translationY = translationY
-                        this.alpha = if (translationY >= totalSlideDistPx - 1f) 0f else 1f
-                      }
-                      .height(navBarHeight + bottomPadding),
-                    containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                    tonalElevation = navElevation
-                  ) {
-                    val isLabelVisible = !hideNavLabels
-                    navigationItems.forEach { screen ->
-                      val selected = remember(currentRoute, screen.route) {
-                        currentRoute == screen.route || currentRoute?.startsWith("${screen.route}/") == true
-                      }
-                      NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                          hapticFeedbackService.performClick()
-                          onNavItemClick(screen, selected)
-                        },
-                        icon = {
-                          val iconPainter = painterResource(id = if (selected) screen.iconIdActive else screen.iconIdInactive)
-                          if (dynamicNavStyle) {
-                            val animatedScale by animateFloatAsState(
-                              targetValue = if (selected) 1.22f else 1.0f,
-                              animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                              ),
-                              label = "dynamicNavIconScale"
-                            )
-                            Box(
-                              modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                              contentAlignment = Alignment.Center
-                            ) {
-                              Icon(
-                                painter = iconPainter,
-                                contentDescription = stringResource(screen.titleId),
-                                modifier = Modifier
-                                  .graphicsLayer {
-                                    scaleX = animatedScale
-                                    scaleY = animatedScale
-                                  }
-                                  .size(navIconSize)
-                              )
-                            }
-                          } else {
-                            Icon(
-                              painter = iconPainter,
-                              contentDescription = stringResource(screen.titleId),
-                              modifier = Modifier.size(navIconSize)
-                            )
+                  if (shouldUseFloatingBar) {
+                    val floatingNavBarHeight by animateDpAsState(
+                      targetValue = if (shouldShowNavigationBar && !showRail) currentNavBarHeight else 0.dp,
+                      animationSpec = NavigationBarAnimationSpec,
+                      label = "floatingNavBarHeight",
+                    )
+                    if (floatingNavBarHeight > 0.dp) {
+                      val floatingBarBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding().coerceAtLeast(14.dp)
+                      val maxSlideDist = bottomNavHeightPx + navigationBarsHeightPx + with(density) { 56.dp.toPx() }
+                      AppFloatingNavBar(
+                        navigationItems = navigationItems,
+                        currentRoute = currentRoute,
+                        onItemClick = onNavItemClick,
+                        scrollConnection = floatingNavBarScrollConnection,
+                        pureBlack = pureBlack,
+                        showPlayerAccessory = hasDockedPlayerAccessory,
+                        onAccessoryClick = { playerBottomSheetState.expandSoft() },
+                        modifier = Modifier
+                          .align(Alignment.BottomCenter)
+                          .widthIn(max = 520.dp)
+                          .fillMaxWidth()
+                          .padding(horizontal = 16.dp)
+                          .padding(bottom = floatingBarBottomInset + 4.dp)
+                          .graphicsLayer {
+                            val playerProgress = playerBottomSheetState.progress.coerceIn(0f, 1f)
+                            val translationY = (animatedNavBarTranslation.value + (maxSlideDist * playerProgress)).coerceAtMost(maxSlideDist)
+                            this.translationY = translationY
+                            this.alpha = if (playerProgress >= 0.99f || (translationY >= maxSlideDist - 1f)) 0f else 1f
                           }
-                        },
-                        label = if (isLabelVisible) {
-                          {
-                            Text(
-                              text = stringResource(screen.titleId),
-                              maxLines = 1,
-                              overflow = TextOverflow.Ellipsis,
-                              style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-                              )
-                            )
-                          }
-                        } else null,
-                        alwaysShowLabel = if (dynamicNavStyle) false else isLabelVisible,
-                        colors = NavigationBarItemDefaults.colors(
-                          indicatorColor = if (dynamicNavStyle) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
-                          selectedIconColor = if (dynamicNavStyle) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
-                          unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                          selectedTextColor = MaterialTheme.colorScheme.primary,
-                          unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                       )
                     }
+                  } else {
+                    AppNavigationBar(
+                      navigationItems = navigationItems,
+                      currentRoute = currentRoute,
+                      onItemClick = { screen, selected ->
+                        hapticFeedbackService.performClick()
+                        onNavItemClick(screen, selected)
+                      },
+                      pureBlack = pureBlack,
+                      hideNavLabels = hideNavLabels,
+                      dynamicNavStyle = dynamicNavStyle,
+                      onSearchLongClick = onSearchLongClick,
+                      modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .graphicsLayer {
+                          val playerProgress = playerBottomSheetState.progress.coerceIn(0f, 1f)
+                          val translationY = (animatedNavBarTranslation.value + (navBarSlideDistPx * playerProgress)).coerceAtMost(navBarSlideDistPx)
+                          this.translationY = translationY
+                          this.alpha = if (translationY >= navBarSlideDistPx - 1f) 0f else 1f
+                        }
+                    )
                   }
                 }
               } else {
@@ -1510,12 +1531,11 @@ class MainActivity : ComponentActivity() {
             modifier =
               Modifier.fillMaxSize()
                 .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
-                .nestedScroll(navBarScrollConnection)
                 .then(
-                  if (useFloatingNavBar) {
+                  if (shouldUseFloatingBar) {
                     Modifier.nestedScroll(floatingNavBarScrollConnection)
                   } else {
-                    Modifier
+                    Modifier.nestedScroll(navBarScrollConnection)
                   }
                 )
           ) {
@@ -1567,6 +1587,17 @@ class MainActivity : ComponentActivity() {
                   shuffleContentDescription = stringResource(R.string.shuffle)
                 )
               }
+              val menuState = LocalMenuState.current
+              val bottomSheetPageState = LocalBottomSheetPageState.current
+              val isAnyMenuVisible = menuState.isVisible || bottomSheetPageState.isVisible
+              val windowContentBlur by animateDpAsState(
+                targetValue = if (isAnyMenuVisible) 20.dp else 0.dp,
+                label = "windowContentBlur",
+                animationSpec = tween(durationMillis = 280)
+              )
+              val topLevelScreens = remember {
+                Screens.MainScreens.map { it.route }.toSet() + setOf("search", "search_input")
+              }
               Box(Modifier.weight(1f)) {
                 NavHost(
                   navController = navController,
@@ -1577,69 +1608,55 @@ class MainActivity : ComponentActivity() {
                       else -> Screens.Home
                     }.route,
                   enterTransition = {
-                    val currentRouteIndex =
-                      navigationItems.indexOfFirst { it.route == targetState.destination.route }
-                    val previousRouteIndex =
-                      navigationItems.indexOfFirst { it.route == initialState.destination.route }
-
-                    if (currentRouteIndex == -1 || currentRouteIndex > previousRouteIndex)
-                      slideInHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        it / 8
-                      } + fadeIn(tween(400, easing = EmphasizedEasing))
-                    else
-                      slideInHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        -it / 8
-                      } + fadeIn(tween(400, easing = EmphasizedEasing))
+                    if (initialState.destination.route in topLevelScreens &&
+                      targetState.destination.route in topLevelScreens
+                    ) {
+                      fadeIn(tween(250))
+                    } else {
+                      fadeIn(tween(250)) + slideInHorizontally { it / 2 }
+                    }
                   },
                   exitTransition = {
-                    val currentRouteIndex =
-                      navigationItems.indexOfFirst { it.route == initialState.destination.route }
-                    val targetRouteIndex =
-                      navigationItems.indexOfFirst { it.route == targetState.destination.route }
-
-                    if (targetRouteIndex == -1 || targetRouteIndex > currentRouteIndex)
-                      slideOutHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        -it / 8
-                      } + fadeOut(tween(400, easing = EmphasizedEasing))
-                    else
-                      slideOutHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        it / 8
-                      } + fadeOut(tween(400, easing = EmphasizedEasing))
+                    if (initialState.destination.route in topLevelScreens &&
+                      targetState.destination.route in topLevelScreens
+                    ) {
+                      fadeOut(tween(200))
+                    } else {
+                      fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
+                    }
                   },
                   popEnterTransition = {
-                    val currentRouteIndex =
-                      navigationItems.indexOfFirst { it.route == targetState.destination.route }
-                    val previousRouteIndex =
-                      navigationItems.indexOfFirst { it.route == initialState.destination.route }
-
-                    if (previousRouteIndex != -1 && previousRouteIndex < currentRouteIndex)
-                      slideInHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        it / 8
-                      } + fadeIn(tween(400, easing = EmphasizedEasing))
-                    else
-                      slideInHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        -it / 8
-                      } + fadeIn(tween(400, easing = EmphasizedEasing))
+                    if (initialState.destination.route in topLevelScreens &&
+                      targetState.destination.route in topLevelScreens
+                    ) {
+                      fadeIn(tween(250))
+                    } else {
+                      fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
+                    }
                   },
                   popExitTransition = {
-                    val currentRouteIndex =
-                      navigationItems.indexOfFirst { it.route == initialState.destination.route }
-                    val targetRouteIndex =
-                      navigationItems.indexOfFirst { it.route == targetState.destination.route }
-
-                    if (currentRouteIndex != -1 && currentRouteIndex < targetRouteIndex)
-                      slideOutHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        -it / 8
-                      } + fadeOut(tween(400, easing = EmphasizedEasing))
-                    else
-                      slideOutHorizontally(animationSpec = tween(400, easing = EmphasizedEasing)) {
-                        it / 8
-                      } + fadeOut(tween(400, easing = EmphasizedEasing))
+                    if (initialState.destination.route in topLevelScreens &&
+                      targetState.destination.route in topLevelScreens
+                    ) {
+                      fadeOut(tween(200))
+                    } else {
+                      fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
+                    }
                   },
                   modifier =
-                    Modifier.layerBackdrop(appBackdrop)
+                    Modifier.then(
+                      if (liquidGlassGlobalEnabled) Modifier.layerBackdrop(appBackdrop)
+                      else Modifier
+                    )
                       .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
-                      .nestedScroll(navBarScrollConnection)
+                      .then(
+                        if (shouldUseFloatingBar) {
+                          Modifier.nestedScroll(floatingNavBarScrollConnection)
+                        } else {
+                          Modifier.nestedScroll(navBarScrollConnection)
+                        }
+                      )
+                      .then(if (windowContentBlur > 0.dp) Modifier.blur(windowContentBlur) else Modifier)
                 ) {
                   navigationBuilder(
                     navController = navController,
@@ -1895,5 +1912,5 @@ val LocalPlayerAwareWindowInsets =
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
 val LocalListenTogetherManager =
-  staticCompositionLocalOf<com.music.sonic.listentogether.ListenTogetherManager?> { null }
+  staticCompositionLocalOf<ListenTogetherManager?> { null as ListenTogetherManager? }
 val LocalIsPlayerExpanded = compositionLocalOf { false }

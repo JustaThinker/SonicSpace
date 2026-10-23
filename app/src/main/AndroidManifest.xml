@@ -226,6 +226,76 @@
         </activity-alias>
 
         <activity-alias
+            android:name=".MainActivitySlateBlue"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/slate_blue_icon"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/slate_blue_icon_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityOliveGreen"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/olive_green_icon"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/olive_green_icon_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityPlumPurple"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/plum_purple_icon"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/plum_purple_icon_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityMetallic"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/metallic_icon"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/metallic_icon_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityMusicKitty"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/music_kitty_icon"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/music_kitty_icon_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
             android:name=".MainActivityLegacy"
             android:enabled="false"
             android:exported="true"

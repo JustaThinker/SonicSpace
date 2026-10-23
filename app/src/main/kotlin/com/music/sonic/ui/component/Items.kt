@@ -44,6 +44,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -133,10 +134,10 @@ fun currentGridThumbnailHeight(): Dp {
 }
 
 @Composable
-inline fun ListItem(
+fun ListItem(
   modifier: Modifier = Modifier,
   title: String,
-  noinline subtitle: (@Composable RowScope.() -> Unit)? = null,
+  subtitle: (@Composable RowScope.() -> Unit)? = null,
   thumbnailContent: @Composable () -> Unit,
   trailingContent: @Composable RowScope.() -> Unit = {},
   isSelected: Boolean? = false,
@@ -147,6 +148,9 @@ inline fun ListItem(
   horizontalPadding: Dp = 16.dp,
   color: Color = MaterialTheme.colorScheme.surfaceContainer,
 ) {
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val activeBg = primaryColor.copy(alpha = 0.12f)
+
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier =
@@ -156,9 +160,9 @@ inline fun ListItem(
         .background(
           color =
             when {
-              isActive -> MaterialTheme.colorScheme.primaryContainer
+              isActive -> activeBg
               isSelected == true && drawHighlight ->
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                primaryColor.copy(alpha = 0.12f)
               else -> color
             }
         )
@@ -197,17 +201,25 @@ inline fun ListItem(
         text = title,
         style = MaterialTheme.typography.bodyMedium,
         fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
-        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        color = if (isActive) primaryColor else MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
       )
 
       if (subtitle != null) {
-        Row(verticalAlignment = Alignment.CenterVertically) { subtitle() }
+        CompositionLocalProvider(
+          LocalContentColor provides if (isActive) primaryColor.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) { subtitle() }
+        }
       }
     }
 
-    trailingContent()
+    CompositionLocalProvider(
+      LocalContentColor provides if (isActive) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
+    ) {
+      trailingContent()
+    }
   }
 }
 
@@ -470,17 +482,21 @@ fun RecentTrackRow(
   onLongClick: (() -> Unit)? = null,
   trailingContent: (@Composable () -> Unit)? = null,
 ) {
+  val primaryColor = MaterialTheme.colorScheme.primary
+
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier =
       modifier
         .fillMaxWidth()
         .heightIn(min = 52.dp)
+        .clip(RoundedCornerShape(12.dp))
+        .background(if (isActive) primaryColor.copy(alpha = 0.12f) else Color.Transparent)
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         )
-        .padding(vertical = 4.dp),
+        .padding(horizontal = 8.dp, vertical = 4.dp),
   ) {
     ItemThumbnail(
       thumbnailUrl = thumbnailUrl,
@@ -500,7 +516,8 @@ fun RecentTrackRow(
       Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
+        color = if (isActive) primaryColor else MaterialTheme.colorScheme.onSurface,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
       )
@@ -509,7 +526,7 @@ fun RecentTrackRow(
         Text(
           text = artist,
           style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          color = if (isActive) primaryColor.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
         )
@@ -517,7 +534,11 @@ fun RecentTrackRow(
     }
 
     if (trailingContent != null) {
-      trailingContent()
+      CompositionLocalProvider(
+        LocalContentColor provides if (isActive) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
+      ) {
+        trailingContent()
+      }
     }
   }
 }
@@ -1440,6 +1461,7 @@ fun ItemThumbnail(
       PlayingIndicatorBox(
         isActive = isActive,
         playWhenReady = isPlaying,
+        color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.clip(shape),
       )
     }

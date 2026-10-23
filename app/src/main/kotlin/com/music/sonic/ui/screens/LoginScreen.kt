@@ -1,7 +1,6 @@
 package com.music.sonic.ui.screens
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -41,6 +40,7 @@ import com.music.sonic.ui.utils.backToMain
 import com.music.sonic.utils.rememberPreference
 import com.music.sonic.utils.reportException
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
@@ -54,7 +54,6 @@ import timber.log.Timber
 fun LoginScreen(
   navController: NavController,
 ) {
-  val context = LocalContext.current
   val coroutineScope = rememberCoroutineScope()
   var visitorData by rememberPreference(VisitorDataKey, "")
   var dataSyncId by rememberPreference(DataSyncIdKey, "")
@@ -74,72 +73,78 @@ fun LoginScreen(
         webViewClient =
           object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String?) {
-              loadUrl("javascript:Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA)")
-              loadUrl("javascript:Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID)")
+              loadUrl(
+                "javascript:if(window.yt && window.yt.config_){ " +
+                "  if(window.yt.config_.VISITOR_DATA) Android.onRetrieveVisitorData(window.yt.config_.VISITOR_DATA); " +
+                "  if(window.yt.config_.DATASYNC_ID) Android.onRetrieveDataSyncId(window.yt.config_.DATASYNC_ID); " +
+                "}"
+              )
 
               if (url?.startsWith("https://music.youtube.com") == true && !hasCompletedLogin) {
-                innerTubeCookie = CookieManager.getInstance().getCookie(url)
-                hasCompletedLogin = true
+                val cookie = CookieManager.getInstance().getCookie(url)
+                if (cookie != null && ("SAPISID" in cookie || "HSID" in cookie)) {
+                  hasCompletedLogin = true
+                  innerTubeCookie = cookie
 
-                coroutineScope.launch {
-                  delay(500)
+                  coroutineScope.launch {
+                    delay(500)
 
-                  YouTube.cookie = innerTubeCookie
-                  YouTube.dataSyncId = dataSyncId
-                  YouTube.visitorData = visitorData
+                    YouTube.cookie = cookie
+                    YouTube.dataSyncId = dataSyncId
+                    YouTube.visitorData = visitorData
 
-                  Timber.d("Login: YouTube object initialized, validating...")
+                    Timber.d("Login: YouTube object initialized, validating...")
 
-                  YouTube.accountInfo()
-                    .onSuccess {
-                      accountName = it.name
-                      accountEmail = it.email.orEmpty()
-                      accountChannelHandle = it.channelHandle.orEmpty()
+                    YouTube.accountInfo()
+                      .onSuccess {
+                        accountName = it.name
+                        accountEmail = it.email.orEmpty()
+                        accountChannelHandle = it.channelHandle.orEmpty()
 
-                      val newAccount =
-                        AccountData(
-                          name = it.name,
-                          email = it.email.orEmpty(),
-                          channelHandle = it.channelHandle.orEmpty(),
-                          cookie = innerTubeCookie,
-                          visitorData = visitorData,
-                          dataSyncId = dataSyncId,
-                          avatarUrl = it.thumbnailUrl.orEmpty()
-                        )
-                      val accounts =
-                        try {
-                            Json.decodeFromString<List<AccountData>>(savedAccountsJson)
-                          } catch (e: Exception) {
-                            emptyList()
+                        val newAccount =
+                          AccountData(
+                            name = it.name,
+                            email = it.email.orEmpty(),
+                            channelHandle = it.channelHandle.orEmpty(),
+                            cookie = cookie,
+                            visitorData = visitorData,
+                            dataSyncId = dataSyncId,
+                            avatarUrl = it.thumbnailUrl.orEmpty()
+                          )
+                        val accounts =
+                          try {
+                              Json.decodeFromString<List<AccountData>>(savedAccountsJson)
+                            } catch (e: Exception) {
+                              emptyList()
+                            }
+                            .toMutableList()
+                        accounts.removeAll { acc -> acc.name == newAccount.name }
+                        accounts.add(newAccount)
+                        savedAccountsJson = Json.encodeToString(accounts)
+
+                        Timber.d("Login: Successfully logged in as ${it.name}")
+
+                        webView?.apply {
+                          stopLoading()
+                          clearHistory()
+                          clearCache(true)
+                          clearFormData()
+                        }
+
+                        if (navController.previousBackStackEntry != null) {
+                          navController.popBackStack()
+                        } else {
+                          navController.navigate("home") {
+                            popUpTo(0) { inclusive = true }
                           }
-                          .toMutableList()
-                      accounts.removeAll { acc -> acc.name == newAccount.name }
-                      accounts.add(newAccount)
-                      savedAccountsJson = Json.encodeToString(accounts)
-
-                      Timber.d("Login: Successfully logged in as ${it.name}, restarting app...")
-
-                      webView?.apply {
-                        stopLoading()
-                        clearHistory()
-                        clearCache(true)
-                        clearFormData()
+                        }
                       }
-
-                      val intent =
-                        context.packageManager.getLaunchIntentForPackage(context.packageName)
-                      intent?.addFlags(
-                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                      )
-                      context.startActivity(intent)
-                      delay(500)
-                      Runtime.getRuntime().exit(0)
-                    }
-                    .onFailure {
-                      Timber.e(it, "Login: Authentication validation failed")
-                      hasCompletedLogin = false
-                      reportException(it)
-                    }
+                      .onFailure {
+                        Timber.e(it, "Login: Authentication validation failed")
+                        hasCompletedLogin = false
+                        reportException(it)
+                      }
+                  }
                 }
               }
             }
@@ -154,15 +159,20 @@ fun LoginScreen(
           object {
             @JavascriptInterface
             fun onRetrieveVisitorData(newVisitorData: String?) {
-              if (newVisitorData != null) {
-                visitorData = newVisitorData
+              if (!newVisitorData.isNullOrBlank()) {
+                coroutineScope.launch(Dispatchers.Main) {
+                  visitorData = newVisitorData
+                }
               }
             }
 
             @JavascriptInterface
             fun onRetrieveDataSyncId(newDataSyncId: String?) {
-              if (newDataSyncId != null) {
-                dataSyncId = newDataSyncId.substringBefore("||")
+              if (!newDataSyncId.isNullOrBlank()) {
+                val cleanSyncId = newDataSyncId.substringBefore("||")
+                coroutineScope.launch(Dispatchers.Main) {
+                  dataSyncId = cleanSyncId
+                }
               }
             }
           },

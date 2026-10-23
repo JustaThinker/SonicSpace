@@ -6,8 +6,15 @@ package com.music.sonic.ui.component
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +27,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.music.sonic.ui.component.floatingtabbar.FloatingTabBar
 import com.music.sonic.ui.component.floatingtabbar.FloatingTabBarDefaults
 import com.music.sonic.ui.component.floatingtabbar.FloatingTabBarScrollConnection
@@ -47,12 +55,11 @@ fun AppFloatingNavBar(
   pureBlack: Boolean = false,
   showPlayerAccessory: Boolean = false,
   onAccessoryClick: () -> Unit = {},
-  onMusicRecognitionClick: (() -> Unit)? = null,
-  musicRecognitionContentDescription: String = "",
 ) {
 
   val glassConfig = LocalGlassEffectConfig.current
   val useGlass = glassConfig.isEnabledFor(GlassComponent.NAV_BAR)
+  val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
   
   val backgroundColor = when {
     useGlass -> Color.Transparent
@@ -60,30 +67,27 @@ fun AppFloatingNavBar(
     else -> MaterialTheme.colorScheme.surfaceContainerHigh
   }
   
-  val adaptiveTextColor = if (glassConfig.textColor.isSpecified) {
-    glassConfig.textColor
-  } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-    Color.Black
-  } else {
-    Color.White
-  }
+  val glassContentColor = if (isLight) Color.Black else Color.White
+  val adaptiveTextColor = if (useGlass) glassContentColor else glassConfig.resolveTextColor()
 
   val selectedContentColor = when {
-    useGlass -> adaptiveTextColor
+    useGlass -> glassContentColor
     pureBlack -> Color.White
     else -> MaterialTheme.colorScheme.primary
   }
   
   val unselectedContentColor = when {
-    useGlass -> adaptiveTextColor.copy(alpha = 0.65f)
+    useGlass -> glassContentColor.copy(alpha = 0.65f)
     pureBlack -> Color.White.copy(alpha = 0.65f)
     else -> MaterialTheme.colorScheme.onSurfaceVariant
   }
 
+  val pillShape = remember { RoundedCornerShape(percent = 50) }
+
   val tabBarContentModifier = if (useGlass) {
     Modifier.liquidGlass(
       config = glassConfig,
-      shape = RoundedCornerShape(percent = 50),
+      shape = pillShape,
     )
   } else {
     Modifier
@@ -94,12 +98,12 @@ fun AppFloatingNavBar(
       .firstOrNull { screen -> isRouteSelected(currentRoute, screen.route, navigationItems) }
       ?.route
 
-  val searchScreen = navigationItems.firstOrNull { it == Screens.Search }
+  val searchScreen = navigationItems.firstOrNull { it == Screens.Search } ?: Screens.Search
   val tabScreens = remember(navigationItems) { navigationItems.filter { it != Screens.Search } }
 
   val accessoryContentColor =
     when {
-      useGlass -> adaptiveTextColor
+      useGlass -> glassContentColor
       pureBlack -> Color.White
       else -> MaterialTheme.colorScheme.onSurface
     }
@@ -145,80 +149,92 @@ fun AppFloatingNavBar(
       FloatingTabBarDefaults.colors(
         backgroundColor = backgroundColor,
         accessoryBackgroundColor = backgroundColor,
+        indicatorColor = if (useGlass) {
+          (if (isLight) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.22f))
+        } else {
+          MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+        },
+      ),
+    elevations = if (useGlass) {
+      FloatingTabBarDefaults.elevations(
+        inlineElevation = 0.dp,
+        expandedElevation = 0.dp,
+      )
+    } else {
+      FloatingTabBarDefaults.elevations()
+    },
+    sizes =
+      FloatingTabBarDefaults.sizes(
+        tabBarContentPadding = androidx.compose.foundation.layout.PaddingValues(6.dp),
+        tabExpandedContentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 9.dp, horizontal = 12.dp),
+        componentSpacing = 8.dp,
       ),
     // The tab content lambdas are captured once per contentKey, so anything they
-    // close over (selection, colors, recognition callback/label) must be part of the
-    // key to avoid stale UI.
+    // close over (selection, colors) must be part of the key to avoid stale UI.
     contentKey =
       listOf(
         selectedTabKey,
         navigationItems,
         selectedContentColor,
         unselectedContentColor,
-        onMusicRecognitionClick,
-        musicRecognitionContentDescription,
       ),
   ) {
     tabScreens.forEach { screen ->
-      if (screen == Screens.Library && onMusicRecognitionClick != null) {
-        tab(
-          key = "music_recognition",
-          title = {
-            Text(
-              text = musicRecognitionContentDescription,
-              color = unselectedContentColor,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-            )
-          },
-          icon = {
-            Icon(
-              painter = painterResource(com.music.sonic.R.drawable.mic),
-              contentDescription = musicRecognitionContentDescription,
-              tint = unselectedContentColor,
-            )
-          },
-          onClick = onMusicRecognitionClick,
-        )
-      }
-
       val isSelected = screen.route == selectedTabKey
       tab(
         key = screen.route,
         title = {
+          val animatedContentColor by animateColorAsState(
+            targetValue = if (isSelected) selectedContentColor else unselectedContentColor,
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+            label = "tabTextColor_${screen.route}"
+          )
           Text(
             text = stringResource(screen.titleId),
-            color = if (isSelected) selectedContentColor else unselectedContentColor,
+            color = animatedContentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.labelSmall.copy(
+              fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+            ),
           )
         },
         icon = {
+          val animatedContentColor by animateColorAsState(
+            targetValue = if (isSelected) selectedContentColor else unselectedContentColor,
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+            label = "tabIconColor_${screen.route}"
+          )
           Icon(
             painter =
               painterResource(if (isSelected) screen.iconIdActive else screen.iconIdInactive),
             contentDescription = stringResource(screen.titleId),
-            tint = if (isSelected) selectedContentColor else unselectedContentColor,
+            tint = animatedContentColor,
+            modifier = Modifier.size(24.dp),
           )
         },
         onClick = { onItemClick(screen, isSelected) },
       )
     }
 
-    searchScreen?.let { screen ->
-      val isSelected = screen.route == selectedTabKey
-      standaloneTab(
-        key = screen.route,
-        icon = {
-          Icon(
-            painter =
-              painterResource(if (isSelected) screen.iconIdActive else screen.iconIdInactive),
-            contentDescription = stringResource(screen.titleId),
-            tint = if (isSelected) selectedContentColor else unselectedContentColor,
-          )
-        },
-        onClick = { onItemClick(screen, isSelected) },
-      )
-    }
+    val isSearchSelected = searchScreen.route == selectedTabKey
+    standaloneTab(
+      key = searchScreen.route,
+      icon = {
+        val animatedSearchColor by animateColorAsState(
+          targetValue = if (isSearchSelected) selectedContentColor else unselectedContentColor,
+          animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+          label = "searchContentColor"
+        )
+        Icon(
+          painter =
+            painterResource(if (isSearchSelected) searchScreen.iconIdActive else searchScreen.iconIdInactive),
+          contentDescription = stringResource(searchScreen.titleId),
+          tint = animatedSearchColor,
+          modifier = Modifier.size(24.dp),
+        )
+      },
+      onClick = { onItemClick(searchScreen, isSearchSelected) },
+    )
   }
 }

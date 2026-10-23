@@ -305,7 +305,7 @@ fun LastFMSettingsScreen(navController: NavController) {
 
       // Options section (card-based)
 
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(10.dp))
 
       Material3SettingsGroup(
         title = stringResource(R.string.account),
@@ -341,7 +341,7 @@ fun LastFMSettingsScreen(navController: NavController) {
 
       Spacer(Modifier.height(8.dp))
 
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(10.dp))
 
       Material3SettingsGroup(
         title = stringResource(R.string.options),

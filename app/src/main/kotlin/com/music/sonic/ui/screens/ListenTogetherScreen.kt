@@ -429,17 +429,14 @@ fun ListenTogetherScreen(navController: NavController, showTopBar: Boolean = fal
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.onSurface
             )
-
             InstructionStep(
               title = "1. Create a Room",
               description = "Start a session and share the unique room code with your friends."
             )
-
             InstructionStep(
               title = "2. Join a Friend",
               description = "Enter their room code to join their session instantly."
             )
-
             InstructionStep(
               title = "3. Sync Playback",
               description = "The host controls the music. Everyone listens in perfect sync!"
@@ -448,6 +445,7 @@ fun ListenTogetherScreen(navController: NavController, showTopBar: Boolean = fal
         }
       }
     }
+
   }
 
   if (shouldShowTopBar) {
@@ -1064,11 +1062,7 @@ private fun JoinCreateRoomSection(
             ),
           elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
-          Icon(
-            painter = painterResource(R.drawable.add),
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-          )
+          Icon(painter = painterResource(R.drawable.add), contentDescription = null, modifier = Modifier.size(18.dp))
           Spacer(Modifier.width(6.dp))
           Text(stringResource(R.string.create_room), fontWeight = FontWeight.SemiBold)
         }
@@ -1086,11 +1080,7 @@ private fun JoinCreateRoomSection(
             ),
           elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
         ) {
-          Icon(
-            painter = painterResource(R.drawable.login),
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-          )
+          Icon(painter = painterResource(R.drawable.login), contentDescription = null, modifier = Modifier.size(18.dp))
           Spacer(Modifier.width(6.dp))
           Text(stringResource(R.string.join_room), fontWeight = FontWeight.SemiBold)
         }

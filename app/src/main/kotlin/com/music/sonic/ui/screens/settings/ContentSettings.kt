@@ -644,7 +644,7 @@ fun ContentSettings(
       Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top))
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -827,7 +827,7 @@ fun ContentSettings(
         )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -860,7 +860,7 @@ fun ContentSettings(
         )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -900,7 +900,7 @@ fun ContentSettings(
         )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -963,7 +963,7 @@ fun ContentSettings(
         }
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -1033,7 +1033,7 @@ fun ContentSettings(
         )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,

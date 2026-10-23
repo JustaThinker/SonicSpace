@@ -948,10 +948,9 @@ constructor(
   }
 
   init {
-    // Load immediately — BitChord approach: don't block on cookie, fetch home feed for all users.
-    // Cookie-gated features (account playlists, history) fall back gracefully when not signed in.
+    // Load immediately with whatever cookie is already stored so authenticated users get
+    // personalised content on first launch without waiting for the watcher below.
     viewModelScope.launch(Dispatchers.IO) {
-      // Seed the cookie from DataStore before first load so authenticated calls work on startup
       val initialCookie = try {
         context.dataStore.data.map { it[InnerTubeCookieKey] }.first()
       } catch (e: Exception) {
@@ -965,36 +964,52 @@ constructor(
 
     viewModelScope.launch(Dispatchers.IO) { syncUtils.tryAutoSync() }
 
+    // Watch for cookie changes (sign-in / sign-out) and reload ALL personalised sections
+    // so "Picked For You", home shelves, daily discover, similar recommendations,
+    // community playlists — everything — reflects the correct signed-in user, not a generic feed.
     viewModelScope.launch(Dispatchers.IO) {
       context.dataStore.data
         .map {
-          (try {
-            it[InnerTubeCookieKey]
-          } catch (e: Exception) {
-            null
-          })
+          try { it[InnerTubeCookieKey] } catch (e: Exception) { null }
         }
+        .distinctUntilChanged()          // only react when the cookie value actually changes
         .collect { cookie ->
           if (isProcessingAccountData) return@collect
-
           lastProcessedCookie = cookie
           isProcessingAccountData = true
 
           try {
-            if (cookie != null && cookie.isNotEmpty()) {
-
+            if (!cookie.isNullOrEmpty()) {
               YouTube.cookie = cookie
 
+              // Fetch account identity first so the UI shows the right name/avatar immediately
               YouTube.accountInfo()
                 .onSuccess { info ->
                   accountName.value = info.name
                   accountImageUrl.value = info.thumbnailUrl
                 }
                 .onFailure { reportException(it) }
+
+              // Re-fetch everything: home feed, quick picks, daily discover, similar recs,
+              // community playlists — all gated on the signed-in identity.
+              if (!isLoading.value && !isRefreshing.value) {
+                load()
+              }
             } else {
+              // Signed out — clear user-specific state and reload with guest feed
+              YouTube.cookie = null
               accountName.value = "Guest"
               accountImageUrl.value = null
               accountPlaylists.value = null
+              homePage.value = null
+              networkQuickPicks.value = null
+              dailyDiscover.value = null
+              similarRecommendations.value = null
+              communityPlaylists.value = null
+
+              if (!isLoading.value && !isRefreshing.value) {
+                load()
+              }
             }
           } finally {
             isProcessingAccountData = false

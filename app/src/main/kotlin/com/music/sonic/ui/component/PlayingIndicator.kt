@@ -6,10 +6,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
@@ -86,12 +88,12 @@ fun PlayingIndicatorBox(
   ) {
     Box(
       contentAlignment = Alignment.Center,
-      modifier = modifier,
+      modifier = modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)),
     ) {
       if (playWhenReady) {
         PlayingIndicator(
           color = color,
-          modifier = Modifier.height(24.dp),
+          modifier = Modifier.height(20.dp),
         )
       } else {
         Icon(

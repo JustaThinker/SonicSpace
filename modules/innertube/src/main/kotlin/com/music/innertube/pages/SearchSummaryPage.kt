@@ -46,8 +46,9 @@ data class SearchSummaryPage(
     if (disableVideos) {
       SearchSummaryPage(
         summaries.mapNotNull { s ->
-          if (s.title == "Videos") s
-          else {
+          if (s.title == "Videos") {
+            null
+          } else {
             val filteredItems =
               s.items.filterVideoSongs(true).ifEmpty {
                 return@mapNotNull null

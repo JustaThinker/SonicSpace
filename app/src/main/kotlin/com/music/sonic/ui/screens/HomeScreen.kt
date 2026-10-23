@@ -113,9 +113,12 @@ import com.music.innertube.utils.parseCookieString
 import com.music.sonic.LocalDatabase
 import com.music.sonic.LocalPlayerAwareWindowInsets
 import com.music.sonic.LocalPlayerConnection
+import com.music.sonic.ui.component.LocalGlassEffectConfig
 import com.music.sonic.R
 import com.music.sonic.constants.GridItemSize
 import com.music.sonic.constants.GridItemsSizeKey
+import com.music.sonic.constants.BitChordPaletteKey
+import com.music.sonic.constants.DynamicThemeKey
 import com.music.sonic.constants.GridThumbnailHeight
 import com.music.sonic.constants.InnerTubeCookieKey
 import com.music.sonic.constants.ListItemHeight
@@ -255,24 +258,7 @@ private fun HomeSectionHeader(
       }
     }
 
-    if (onPlayAllClick != null) {
-      OutlinedButton(
-        onClick = onPlayAllClick,
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)),
-        colors =
-          ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.primary
-          ),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
-        modifier = Modifier.height(28.dp)
-      ) {
-        Text(
-          text = stringResource(R.string.play_all),
-          style = MaterialTheme.typography.labelSmall
-        )
-      }
-    } else if (onClick != null) {
+    if (onClick != null) {
       Icon(
         painter = painterResource(R.drawable.arrow_forward),
         contentDescription = null,
@@ -1165,43 +1151,6 @@ fun HomeScreen(
   ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
       val screenMaxWidth = maxWidth
-      val isDarkTheme = isSystemInDarkTheme()
-      val color1 = if (isDarkTheme)
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-      else
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
-      val color2 = if (isDarkTheme)
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
-      else
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.03f)
-      val color3 = if (isDarkTheme)
-        MaterialTheme.colorScheme.secondary.copy(alpha = 0.04f)
-      else
-        Color.Transparent
-      val backgroundColor = if (isDarkTheme) Color(0xFF121212) else MaterialTheme.colorScheme.background
-
-      val gradientAlpha by animateFloatAsState(
-        targetValue = if (isLoading && homePage == null) 0f else 1f,
-        animationSpec = tween(durationMillis = 1200, easing = LinearOutSlowInEasing),
-        label = "GradientFadeIn"
-      )
-
-      Box(
-        modifier = Modifier
-          .fillMaxWidth()
-          .height(300.dp)
-          .graphicsLayer {
-            val scrollY = if (lazylistState.firstVisibleItemIndex == 0) lazylistState.firstVisibleItemScrollOffset else 2000
-            val scrollAlpha = (1f - (scrollY / 600f)).coerceIn(0f, 1f)
-            alpha = scrollAlpha * gradientAlpha
-            translationY = -scrollY * 0.1f
-          }
-          .background(
-            brush = Brush.verticalGradient(
-              colors = listOf(color1, color2, color3, backgroundColor)
-            )
-          )
-      )
 
       LazyColumn(
         state = lazylistState,

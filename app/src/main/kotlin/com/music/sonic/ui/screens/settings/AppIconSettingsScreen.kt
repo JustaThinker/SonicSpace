@@ -57,7 +57,7 @@ fun AppIconSettingsScreen(
           val componentName = intent.component
           val mainIntent = android.content.Intent.makeRestartActivityTask(componentName)
           activity.startActivity(mainIntent)
-          Runtime.getRuntime().exit(0)
+          activity.finish()
         }
       }
     }
@@ -104,46 +104,34 @@ fun AppIconSettingsScreen(
             R.mipmap.ic_launcher
           ),
           AppIconOption(
-            AppIconType.LEGACY,
-            "Legacy Icon",
-            "The OG Monochrome Icon",
-            R.mipmap.legacy_icon
+            AppIconType.SLATE_BLUE,
+            "Slate Blue",
+            "A sleek slate blue gradient icon",
+            R.mipmap.slate_blue_icon
           ),
           AppIconOption(
-            AppIconType.CAT,
-            "Cat Icon",
-            "A Pinkish cat-themed icon",
-            R.mipmap.cat_icon
+            AppIconType.OLIVE_GREEN,
+            "Olive Green",
+            "An earthy olive green gradient icon",
+            R.mipmap.olive_green_icon
           ),
           AppIconOption(
-            AppIconType.CRAZY_BLUE,
-            "Crazy Blue Icon",
-            "A vibrant crazy blue icon",
-            R.mipmap.crazy_blue_icon
+            AppIconType.PLUM_PURPLE,
+            "Plum Purple",
+            "An elegant plum purple gradient icon",
+            R.mipmap.plum_purple_icon
           ),
           AppIconOption(
-            AppIconType.POOKIE,
-            "Pookie Icon",
-            "A Cute Pink icon",
-            R.mipmap.pookie_icon
+            AppIconType.METALLIC,
+            "Metallic",
+            "A sleek 3D metallic icon",
+            R.mipmap.metallic_icon
           ),
           AppIconOption(
-            AppIconType.SKY,
-            "Sky Icon",
-            "A beautiful sky-themed icon",
-            R.mipmap.sky_icon
-          ),
-          AppIconOption(
-            AppIconType.ECHO_CAT,
-            "Echo Cat",
-            "A playful cat by Alarp_Svc",
-            R.mipmap.echo_cat_icon
-          ),
-          AppIconOption(
-            AppIconType.EKO,
-            "Eko",
-            "A sleek design by Kouki",
-            R.mipmap.eko_icon
+            AppIconType.MUSIC_KITTY,
+            "Music Kitty",
+            "A cute fluffy kitten holding the note",
+            R.mipmap.music_kitty_icon
           ),
           AppIconOption(
             AppIconType.WIERD_CAT,
@@ -216,10 +204,14 @@ fun AppIconRow(option: AppIconOption, isSelected: Boolean, onClick: () -> Unit) 
           drawable?.toBitmap(width = 192, height = 192)?.asImageBitmap()
         }
       if (bitmap != null) {
+        val isZoomedOut = option.type == AppIconType.MUSIC_KITTY || option.type == AppIconType.WIERD_CAT
         Image(
           bitmap = bitmap,
           contentDescription = null,
-          modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.CircleShape)
+          modifier =
+            Modifier.fillMaxSize()
+              .then(if (isZoomedOut) Modifier.padding(5.dp) else Modifier)
+              .clip(androidx.compose.foundation.shape.CircleShape)
         )
       }
     }

@@ -49,7 +49,7 @@ import com.music.sonic.utils.rememberEnumPreference
 fun LibraryScreen(navController: NavController) {
   var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
   var showFabMenu by remember { mutableStateOf(false) }
-  var showImportMenu by remember { mutableStateOf(false) }
+  var showImportPlaylistOptionsDialog by rememberSaveable { mutableStateOf(false) }
   var showYoutubeImportDialog by remember { mutableStateOf(false) }
   var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
   var showCreatePlaylistOptionsDialog by rememberSaveable { mutableStateOf(false) }
@@ -143,6 +143,16 @@ fun LibraryScreen(navController: NavController) {
 
           DropdownMenu(expanded = showFabMenu, onDismissRequest = { showFabMenu = false }) {
             DropdownMenuItem(
+              text = { Text("Listening Insights") },
+              leadingIcon = {
+                Icon(painter = painterResource(R.drawable.ic_chart), contentDescription = null)
+              },
+              onClick = {
+                showFabMenu = false
+                navController.navigate("stats/insights")
+              }
+            )
+            DropdownMenuItem(
               text = { Text(stringResource(R.string.create_playlist)) },
               leadingIcon = {
                 Icon(painter = painterResource(R.drawable.add), contentDescription = null)
@@ -153,30 +163,33 @@ fun LibraryScreen(navController: NavController) {
               }
             )
             DropdownMenuItem(
+              text = { Text(stringResource(R.string.import_from_spotify)) },
+              leadingIcon = {
+                Icon(painter = painterResource(R.drawable.ic_spotify), contentDescription = null)
+              },
+              onClick = {
+                showFabMenu = false
+                navController.navigate("settings/spotify_import")
+              }
+            )
+            DropdownMenuItem(
+              text = { Text(stringResource(R.string.import_from_youtube_music)) },
+              leadingIcon = {
+                Icon(painter = painterResource(R.drawable.link), contentDescription = null)
+              },
+              onClick = {
+                showFabMenu = false
+                showYoutubeImportDialog = true
+              }
+            )
+            DropdownMenuItem(
               text = { Text(stringResource(R.string.import_playlist)) },
               leadingIcon = {
                 Icon(painter = painterResource(R.drawable.download), contentDescription = null)
               },
               onClick = {
                 showFabMenu = false
-                showImportMenu = true
-              }
-            )
-          }
-
-          DropdownMenu(expanded = showImportMenu, onDismissRequest = { showImportMenu = false }) {
-            DropdownMenuItem(
-              text = { Text(stringResource(R.string.import_from_spotify)) },
-              onClick = {
-                showImportMenu = false
-                navController.navigate("settings/spotify_import")
-              }
-            )
-            DropdownMenuItem(
-              text = { Text(stringResource(R.string.import_from_youtube_music)) },
-              onClick = {
-                showImportMenu = false
-                showYoutubeImportDialog = true
+                showImportPlaylistOptionsDialog = true
               }
             )
           }
@@ -272,6 +285,90 @@ fun LibraryScreen(navController: NavController) {
             onClick = {
               showCreatePlaylistOptionsDialog = false
               showAiPlaylistDialog = true
+            }
+          )
+        }
+
+        androidx.compose.material3.Surface(
+          shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+          color = MaterialTheme.colorScheme.surfaceContainerHighest,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          com.music.sonic.ui.component.PreferenceEntry(
+            icon = {
+              Icon(painter = painterResource(R.drawable.ic_spotify), contentDescription = null)
+            },
+            title = { Text(stringResource(R.string.import_from_spotify)) },
+            description = stringResource(R.string.spotify_import_desc),
+            onClick = {
+              showCreatePlaylistOptionsDialog = false
+              navController.navigate("settings/spotify_import")
+            }
+          )
+        }
+      }
+    }
+  }
+
+  if (showImportPlaylistOptionsDialog) {
+    DefaultDialog(
+      onDismiss = { showImportPlaylistOptionsDialog = false },
+      title = { Text(stringResource(R.string.import_playlist)) },
+    ) {
+      Column(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+      ) {
+        androidx.compose.material3.Surface(
+          shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+          color = MaterialTheme.colorScheme.surfaceContainerHighest,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          com.music.sonic.ui.component.PreferenceEntry(
+            icon = {
+              Icon(painter = painterResource(R.drawable.ic_spotify), contentDescription = null)
+            },
+            title = { Text(stringResource(R.string.import_from_spotify)) },
+            description = stringResource(R.string.spotify_import_desc),
+            onClick = {
+              showImportPlaylistOptionsDialog = false
+              navController.navigate("settings/spotify_import")
+            }
+          )
+        }
+
+        androidx.compose.material3.Surface(
+          shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+          color = MaterialTheme.colorScheme.surfaceContainerHighest,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          com.music.sonic.ui.component.PreferenceEntry(
+            icon = {
+              Icon(painter = painterResource(R.drawable.link), contentDescription = null)
+            },
+            title = { Text(stringResource(R.string.import_from_youtube_music)) },
+            description = stringResource(R.string.import_youtube_music_playlist_desc),
+            onClick = {
+              showImportPlaylistOptionsDialog = false
+              showYoutubeImportDialog = true
+            }
+          )
+        }
+
+        androidx.compose.material3.Surface(
+          shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+          color = MaterialTheme.colorScheme.surfaceContainerHighest,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          com.music.sonic.ui.component.PreferenceEntry(
+            icon = {
+              Icon(painter = painterResource(R.drawable.restore), contentDescription = null)
+            },
+            title = { Text("Backup & File Import") },
+            description = "Restore from local backups or m3u/csv files",
+            onClick = {
+              showImportPlaylistOptionsDialog = false
+              navController.navigate("settings/backup_restore")
             }
           )
         }

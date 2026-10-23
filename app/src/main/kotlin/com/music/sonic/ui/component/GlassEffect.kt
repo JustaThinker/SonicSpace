@@ -5,18 +5,28 @@
 
 package com.music.sonic.ui.component
 
+import android.app.Activity
+import android.content.ContextWrapper
 import android.os.Build
+import android.view.View
+import android.view.Window
+import android.view.WindowManager
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.music.sonic.ui.component.backdrop.Backdrop
 import com.music.sonic.ui.component.backdrop.drawBackdrop
@@ -34,12 +44,12 @@ import com.music.sonic.ui.component.backdrop.shadow.Shadow
 @Stable
 data class GlassEffectConfig(
     val globalEnabled: Boolean = false,
-    val vibrancy: Float = 1f,
-    /** Blur in dp applied to glass pills. Defaults follow Kyant's Apple-matched recipe. */
+    val vibrancy: Float = 1.0f,
+    /** Blur in dp applied to glass pills. Defaults to 8.dp (BitChord Apple-matched default). */
     val blurRadius: Float = 8f,
-    /** 0..1, mapped to 0..[LENS_MAX_DP] dp of lens refraction height. 0.5 = Apple's 24dp. */
+    /** 0..1, mapped to 0..[LENS_MAX_DP] dp of lens refraction height. 0.5 = 24dp (BitChord default). */
     val lensHeight: Float = 0.5f,
-    /** 0..1, mapped to 0..[LENS_MAX_DP] dp of lens refraction amount. 0.5 = Apple's 24dp. */
+    /** 0..1, mapped to 0..[LENS_MAX_DP] dp of lens refraction amount. 0.5 = 24dp (BitChord default). */
     val lensAmount: Float = 0.5f,
     val chromaticAberration: Boolean = true,
     val depthEffect: Boolean = true,
@@ -62,6 +72,47 @@ data class GlassEffectConfig(
             GlassComponent.NAV_BAR -> navBarEnabled
         }
 }
+
+/**
+ * State holding liquid glass styling and configuration.
+ */
+@Stable
+class LiquidGlassState(
+    val config: GlassEffectConfig = GlassEffectConfig()
+)
+
+@Composable
+fun rememberLiquidGlassState(
+    config: GlassEffectConfig = LocalGlassEffectConfig.current
+): LiquidGlassState = remember(config) { LiquidGlassState(config) }
+
+/**
+ * Resolves the configured text color against the current theme when [GlassEffectConfig.textColor]
+ * is [Color.Unspecified]. Guaranteed to return a valid specified color.
+ */
+@Composable
+fun GlassEffectConfig.resolveTextColor(): Color =
+    if (textColor.isSpecified) {
+        textColor
+    } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        Color.Black
+    } else {
+        Color.White
+    }
+
+/**
+ * Resolves the configured surface tint color against the current theme when
+ * [GlassEffectConfig.surfaceTintColor] is [Color.Unspecified].
+ */
+@Composable
+fun GlassEffectConfig.resolveSurfaceTintColor(): Color =
+    if (surfaceTintColor.isSpecified) {
+        surfaceTintColor
+    } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        Color(0xFFFAFAFA)
+    } else {
+        Color(0xFF121212)
+    }
 
 /** UI surfaces that can individually opt in or out of the liquid glass effect. */
 enum class GlassComponent {
@@ -143,10 +194,32 @@ val LocalAppBackdrop = staticCompositionLocalOf<Backdrop> { error("No AppBackdro
  */
 @Composable
 fun Modifier.liquidGlass(
+    state: LiquidGlassState,
+    shape: CornerBasedShape = RoundedCornerShape(28.dp),
+    applyEdgeEffects: Boolean = true,
+    blurRadius: Dp = state.config.blurRadius.dp,
+    saturation: Float = glassSaturation(state.config.vibrancy),
+    tint: Color = state.config.resolveSurfaceTintColor().copy(alpha = state.config.surfaceOpacity),
+    refraction: Float = state.config.lensAmount,
+): Modifier = this.liquidGlass(
+    config = state.config,
+    shape = shape,
+    applyEdgeEffects = applyEdgeEffects,
+    blurRadiusDp = blurRadius.value,
+    saturation = saturation,
+    tint = tint,
+    refraction = refraction,
+)
+
+@Composable
+fun Modifier.liquidGlass(
     config: GlassEffectConfig,
-    shape: CornerBasedShape = RoundedCornerShape(0.dp),
+    shape: CornerBasedShape = RoundedCornerShape(28.dp),
     applyEdgeEffects: Boolean = true,
     blurRadiusDp: Float = config.blurRadius,
+    saturation: Float = glassSaturation(config.vibrancy),
+    tint: Color = config.resolveSurfaceTintColor().copy(alpha = config.surfaceOpacity),
+    refraction: Float = config.lensAmount,
 ): Modifier {
     if (!isGlassSupported()) return this
     val backdrop = LocalAppBackdrop.current
@@ -155,18 +228,8 @@ fun Modifier.liquidGlass(
     // Pixel-sized effect parameters operate on the downscaled backdrop layer, so
     // they are pre-multiplied by the resolution scale to keep the same visual size.
     val blurPx = with(density) { blurRadiusDp.dp.toPx() } * resolutionScale
-    val saturation = glassSaturation(config.vibrancy)
-    val lensHeightPx = with(density) { (config.lensHeight * LENS_MAX_DP).dp.toPx() } * resolutionScale
-    val lensAmountPx = with(density) { (config.lensAmount * LENS_MAX_DP).dp.toPx() } * resolutionScale
-    // Apple's glass is a light material on light content and dark on dark; honor an
-    // explicit user color, otherwise follow the theme.
-    val surfaceTintColor = if (config.surfaceTintColor.isSpecified) {
-        config.surfaceTintColor
-    } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        Color(0xFFFAFAFA)
-    } else {
-        Color(0xFF121212)
-    }
+    val lensHeightPx = with(density) { (refraction * LENS_MAX_DP).dp.toPx() } * resolutionScale
+    val lensAmountPx = with(density) { (refraction * LENS_MAX_DP).dp.toPx() } * resolutionScale
 
     return drawBackdrop(
         backdrop = backdrop,
@@ -193,9 +256,9 @@ fun Modifier.liquidGlass(
         highlight = if (applyEdgeEffects) ({ Highlight.Default }) else null,
         shadow = if (applyEdgeEffects) ({ Shadow.Default }) else null,
         onDrawSurface = {
-            if (config.surfaceOpacity > 0f) {
+            if (tint.alpha > 0f) {
                 drawRect(
-                    color = surfaceTintColor.copy(alpha = config.surfaceOpacity),
+                    color = tint,
                     size = size,
                 )
             }
@@ -203,3 +266,46 @@ fun Modifier.liquidGlass(
         backdropScale = resolutionScale,
     )
 }
+
+/**
+ * Finds the nearest [Window] associated with [view], checking for dialog windows first.
+ */
+fun findDialogWindow(view: View): Window? {
+    var parent = view.parent
+    while (parent != null) {
+        if (parent is DialogWindowProvider) {
+            return parent.window
+        }
+        parent = parent.parent
+    }
+    var ctx = view.context
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx.window
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
+/**
+ * Applies native hardware blur behind the window hosting this composable on Android 12+ (API 31+).
+ * Safe no-op on earlier Android releases.
+ */
+@Composable
+fun ApplyWindowBlurBehind(blurRadiusPx: Int = 60) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val view = LocalView.current
+        DisposableEffect(view, blurRadiusPx) {
+            try {
+                val window = findDialogWindow(view)
+                window?.let { w ->
+                    w.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                    w.attributes = w.attributes.apply {
+                        this.blurBehindRadius = blurRadiusPx
+                    }
+                }
+            } catch (_: Throwable) {}
+            onDispose {}
+        }
+    }
+}
+

@@ -8,10 +8,8 @@ import com.music.innertube.YouTube
 import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.YTItem
-import com.music.innertube.models.filterVideoSongs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import com.music.sonic.constants.HideVideoSongsKey
 import com.music.sonic.db.MusicDatabase
 import com.music.sonic.utils.dataStore
 import com.music.sonic.utils.get
@@ -152,13 +150,7 @@ constructor(
   }
 
   private fun applySongFilters(songs: List<SongItem>): List<SongItem> {
-    val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-    val uniqueSongs = songs.distinctBy { it.id }
-    if (!hideVideoSongs) return uniqueSongs
-
-    val filtered = uniqueSongs.filterVideoSongs(true)
-    // If filtering hides everything, keep original list to avoid false "empty playlist" UX.
-    return if (filtered.isEmpty() && uniqueSongs.isNotEmpty()) uniqueSongs else filtered
+    return songs.distinctBy { it.id }
   }
 
   override fun onCleared() {

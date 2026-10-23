@@ -515,7 +515,7 @@ class PlayerConnection(
 
         launch {
           while (true) {
-            if (player.isPlaying) {
+            if (player.isPlaying && shouldBlockPlaybackChanges?.invoke() != true) {
               val currentSegments = sponsorBlockSegments.value
               if (currentSegments.isNotEmpty()) {
                 val currentPosSec = player.currentPosition / 1000f

@@ -36,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -101,6 +103,14 @@ fun FloatingMiniPlayer(
   val artSize = if (isInline) 32.dp else 44.dp
   val artCornerRadius = if (isInline) 8.dp else 10.dp
   val controlSize = if (isInline) 32.dp else 40.dp
+
+  val resolvedContentColor = if (contentColor.isSpecified) {
+    contentColor
+  } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+    Color.Black
+  } else {
+    Color.White
+  }
 
   // iOS 26 style press response: the whole glass pill grows slightly while touched.
   val pressInteractionSource = remember { MutableInteractionSource() }
@@ -193,7 +203,11 @@ fun FloatingMiniPlayer(
           .clickable(
             interactionSource = pressInteractionSource,
             indication = null,
-            onClick = onClick,
+            onClick = {
+              if (abs(offsetXAnimatable.value) < 10f && totalDragDistance < 15f) {
+                onClick()
+              }
+            },
           )
           .padding(
             horizontal = if (isInline) 8.dp else 12.dp,
@@ -204,7 +218,7 @@ fun FloatingMiniPlayer(
         model = mediaMetadata?.thumbnailUrl,
         contentDescription = null,
         contentScale = ContentScale.Crop,
-        modifier = Modifier.size(artSize).clip(CircleShape),
+        modifier = Modifier.size(artSize).clip(RoundedCornerShape(artCornerRadius)),
       )
 
       Spacer(Modifier.width(if (isInline) 8.dp else 12.dp))
@@ -213,7 +227,7 @@ fun FloatingMiniPlayer(
         Text(
           text = mediaMetadata?.title.orEmpty(),
           style = MaterialTheme.typography.bodySmall,
-          color = contentColor,
+          color = resolvedContentColor,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
           modifier = Modifier.weight(1f),
@@ -223,14 +237,14 @@ fun FloatingMiniPlayer(
           Text(
             text = mediaMetadata?.title.orEmpty(),
             style = MaterialTheme.typography.bodyMedium,
-            color = contentColor,
+            color = resolvedContentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
           )
           Text(
             text = mediaMetadata?.artists?.joinToString { it.name }.orEmpty(),
             style = MaterialTheme.typography.bodySmall,
-            color = contentColor.copy(alpha = 0.7f),
+            color = resolvedContentColor.copy(alpha = 0.7f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
           )
@@ -244,7 +258,7 @@ fun FloatingMiniPlayer(
         Icon(
           painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
           contentDescription = null,
-          tint = contentColor,
+          tint = resolvedContentColor,
         )
       }
 
@@ -256,7 +270,7 @@ fun FloatingMiniPlayer(
           Icon(
             painter = painterResource(R.drawable.skip_next),
             contentDescription = null,
-            tint = contentColor,
+            tint = resolvedContentColor,
           )
         }
       }

@@ -46,3 +46,7 @@ user_input_content.txt
 /gms/
 /app/gms/
 output-metadata.json
+
+# Release signing keystore — never commit private keys to version control
+app/keystore/release.keystore
+keystore.jks

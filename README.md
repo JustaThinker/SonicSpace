@@ -121,8 +121,10 @@ SonicSpace is made possible thanks to the work of the open-source community and 
 
 * **[ViMusic](https://github.com/vFSFitvNM/ViMusic)** — For foundational Android music streaming patterns and InnerTube concepts.
 * **[EchoMusic](https://github.com/EchoMusicApp/Echo-Music)** — For app updater infrastructure, canvas video loop providers, and upstream project foundations.
-* **[BitChord](https://github.com/kushagrasinghx/BitChord)** — For responsive layout patterns, duotone category card designs, and desktop cross-platform paradigms.
-* **[SpatialFlow](https://github.com/MythicalSHUB/SpatialFlow)** — For the SpatialFlow dynamic harmonic HSL theme engine, palette color generator, and expressive vector system.
+* **[BitChord](https://github.com/kushagrasinghx/BitChord)** — For responsive layout patterns, compact library organization, duotone category card designs, and the JioSaavn source pattern (MIT licence) used in the multi-source audio resolver.
+* **[LastWave-native](https://github.com/Clash-Projects/LastWave-native)** — For the addon server REST protocol design and lossless quality tier architecture used in the multi-source audio chain.
+* **[saavn.dev](https://saavn.dev)** — Public JioSaavn API providing pre-decrypted 320 kbps stream URLs without authentication.
+* **[SpatialFlow](https://github.com/MythicalSHUB/SpatialFlow)** — For the dynamic harmonic HSL theme engine, palette color generator, expressive vector system, and onboarding illustrations adapted under Apache-2.0 (see `licenses/SpatialFlow-Apache-2.0.txt`).
 * **[SimpMusic](https://github.com/maxrave-dev/SimpMusic)** — For inspiration on lyrics providers, canvas video loops, and PipePipe integration.
 * **[NewPipe](https://github.com/TeamNewPipe/NewPipe) & [PipePipe](https://github.com/maxrave-dev/PipePipeExtractor)** — For media stream extraction logic and parsing utilities.
 * **[LRCLIB](https://lrclib.net)** — For open-source synchronized lyrics API services.

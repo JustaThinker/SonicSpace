@@ -23,7 +23,6 @@ import com.music.sonic.constants.PureBlackKey
 import com.music.sonic.echomusic.changelog.ChangelogScreen
 import com.music.sonic.echomusic.commitscreen.CommitScreen
 import com.music.sonic.echomusic.updater.UpdateScreen
-import com.music.sonic.ui.screens.settings.UpdateSettings
 import com.music.sonic.ui.screens.ambient.AmbientModeScreen
 import com.music.sonic.ui.screens.artist.ArtistAlbumsScreen
 import com.music.sonic.ui.screens.artist.ArtistItemsScreen
@@ -108,7 +107,7 @@ fun NavGraphBuilder.navigationBuilder(
 
   composable("local_songs") { LocalSongScreen(navController) }
 
-  composable("stats") { StatsScreen(navController) }
+  composable("stats") { StatsScreen(navController, scrollBehavior) }
 
   composable("mood_and_genres") { MoodAndGenresScreen(navController, scrollBehavior) }
 
@@ -206,6 +205,10 @@ fun NavGraphBuilder.navigationBuilder(
     ArtistItemsScreen(navController, scrollBehavior)
   }
 
+  composable("stats/insights") {
+    com.music.sonic.ui.screens.ListeningInsightsScreen(navController, scrollBehavior)
+  }
+
   composable(
     route = "online_playlist/{playlistId}",
     arguments =
@@ -234,6 +237,12 @@ fun NavGraphBuilder.navigationBuilder(
       ),
   ) {
     AutoPlaylistScreen(navController, scrollBehavior)
+  }
+
+  composable(
+    route = "downloads",
+  ) {
+    com.music.sonic.ui.screens.downloads.DownloadLibraryScreen(navController)
   }
 
   composable(
@@ -433,6 +442,10 @@ fun NavGraphBuilder.navigationBuilder(
     com.music.sonic.ui.screens.settings.LastFMSettingsScreen(navController)
   }
 
+  composable("settings/discord") {
+    com.music.sonic.ui.screens.settings.DiscordSettings(navController, scrollBehavior)
+  }
+
   composable("settings/spotify_import") { SpotifyImportScreen(navController) }
 
   composable(route = "settings/integrations/listen_together") {
@@ -466,16 +479,16 @@ fun NavGraphBuilder.navigationBuilder(
         }
       )
   ) { backStackEntry ->
-    UpdateSettings(
+    AboutScreen(
       navController = navController,
       scrollBehavior = scrollBehavior,
       highlightKey = backStackEntry.arguments?.getString("highlightKey")
     )
   }
 
-  composable("settings/update") { UpdateSettings(navController, scrollBehavior) }
+  composable("settings/update") { AboutScreen(navController, scrollBehavior) }
 
-  composable("update") { UpdateSettings(navController, scrollBehavior) }
+  composable("update") { AboutScreen(navController, scrollBehavior) }
 
   composable("login") { LoginScreen(navController) }
 

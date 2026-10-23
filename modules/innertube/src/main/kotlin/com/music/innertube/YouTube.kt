@@ -2013,13 +2013,15 @@ object YouTube {
     innerTube
       .accountMenu(WEB_REMIX)
       .body<AccountMenuResponse>()
-      .actions[0]
-      .openPopupAction
-      .popup
-      .multiPageMenuRenderer
-      .header
+      .actions
+      .firstOrNull()
+      ?.openPopupAction
+      ?.popup
+      ?.multiPageMenuRenderer
+      ?.header
       ?.activeAccountHeaderRenderer
-      ?.toAccountInfo()!!
+      ?.toAccountInfo()
+      ?: throw IllegalStateException("Could not parse account info from YouTube response")
   }
 
   suspend fun feedback(tokens: List<String>): Result<Boolean> = runCatching {

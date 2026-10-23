@@ -81,6 +81,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -129,6 +130,7 @@ import com.music.sonic.playback.PlayerConnection
 import com.music.sonic.ui.component.HeartBurstIcon
 import com.music.sonic.ui.component.GlassComponent
 import com.music.sonic.ui.component.LocalGlassEffectConfig
+import com.music.sonic.ui.component.resolveTextColor
 import com.music.sonic.ui.component.liquidGlass
 import com.music.sonic.ui.component.isGlassSupported
 import com.music.sonic.ui.component.Icon as MIcon
@@ -215,9 +217,9 @@ fun MiniPlayer(
     val pureBlack = if (isFollowTheme) globalPureBlack else pureBlackMini
 
     val glassConfig = LocalGlassEffectConfig.current
-    val useGlass = miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS && glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()
-    
-    val contentColor = if (useGlass) glassConfig.textColor else if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+    val useGlass = (glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) || miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS) && isGlassSupported()
+    val glassTextColor = glassConfig.resolveTextColor()
+    val contentColor = if (useGlass) glassTextColor else if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
     val bgTint = if (useGlass) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh
     android.util.Log.d(
       "COLOR_MATCH",
@@ -227,10 +229,10 @@ fun MiniPlayer(
     val tabBarContentModifier = if (useGlass) {
         Modifier.liquidGlass(
             config = glassConfig,
-            shape = RoundedCornerShape(percent = 50),
+            shape = CircleShape,
         )
     } else {
-        Modifier.clip(RoundedCornerShape(percent = 50)).background(bgTint)
+        Modifier.clip(CircleShape).background(bgTint)
     }
 
     Box(
@@ -282,7 +284,7 @@ private fun NewMiniPlayer(progressState: ProgressState, modifier: Modifier = Mod
   val pureBlack = if (isFollowTheme) globalPureBlack else pureBlackMini
 
   val glassConfig = LocalGlassEffectConfig.current
-  val useGlass = miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS && glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()
+  val useGlass = (glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) || miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS) && isGlassSupported()
 
   val playbackState by playerConnection.playbackState.collectAsState()
   val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -374,10 +376,13 @@ private fun NewMiniPlayer(progressState: ProgressState, modifier: Modifier = Mod
   )
 
   val isDynamicBackground = miniPlayerBackground != PlayerBackgroundStyle.DEFAULT
-  val primaryColor = if (useGlass) glassConfig.textColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.onSurface
-  val onPrimaryColor = if (useGlass) glassConfig.textColor else if (isDynamicBackground) Color.Black else MaterialTheme.colorScheme.surface
-  val outlineColor = if (useGlass) glassConfig.textColor.copy(alpha = 0.5f) else if (isDynamicBackground) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
-  val onSurfaceColor = if (useGlass) glassConfig.textColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.onSurface
+  val glassTextColor = glassConfig.resolveTextColor()
+  val primaryColor = if (useGlass) glassTextColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.onSurface
+  val onPrimaryColor = if (useGlass) {
+    if (glassTextColor.luminance() > 0.5f) Color.Black else Color.White
+  } else if (isDynamicBackground) Color.Black else MaterialTheme.colorScheme.surface
+  val outlineColor = if (useGlass) glassTextColor.copy(alpha = 0.5f) else if (isDynamicBackground) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
+  val onSurfaceColor = if (useGlass) glassTextColor else if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.onSurface
   val errorColor = MaterialTheme.colorScheme.error
 
   Box(
@@ -447,6 +452,16 @@ private fun NewMiniPlayer(progressState: ProgressState, modifier: Modifier = Mod
           } else baseModifier
         }
   ) {
+    val pillShape = CircleShape
+    val pillModifier = if (useGlass) {
+      Modifier.liquidGlass(
+        config = glassConfig,
+        shape = pillShape,
+      )
+    } else {
+      Modifier.clip(pillShape).background(bgTint)
+    }
+
     Box(
       modifier =
         Modifier.then(
@@ -455,14 +470,15 @@ private fun NewMiniPlayer(progressState: ProgressState, modifier: Modifier = Mod
           )
           .height(MiniPlayerHeight)
           .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
-          .clip(RoundedCornerShape(percent = 50))
-          .background(bgTint)
+          .then(pillModifier)
     ) {
-      MiniPlayerBackgroundLayer(
-        style = miniPlayerBackground,
-        mediaMetadata = mediaMetadata,
-        gradientColors = gradientColors
-      )
+      if (!useGlass) {
+        MiniPlayerBackgroundLayer(
+          style = miniPlayerBackground,
+          mediaMetadata = mediaMetadata,
+          gradientColors = gradientColors
+        )
+      }
 
       Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -676,7 +692,7 @@ private fun LegacyMiniPlayer(progressState: ProgressState, modifier: Modifier = 
   val isFollowTheme = miniPlayerBackground == PlayerBackgroundStyle.DEFAULT
   val pureBlack = if (isFollowTheme) globalPureBlack else pureBlackMini
   val glassConfig = LocalGlassEffectConfig.current
-  val useGlass = miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS && glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) && isGlassSupported()
+  val useGlass = (glassConfig.isEnabledFor(GlassComponent.MINI_PLAYER) || miniPlayerBackground == PlayerBackgroundStyle.LIQUID_GLASS) && isGlassSupported()
   val bgTint = if (useGlass) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh
 
   val playbackState by playerConnection.playbackState.collectAsState()
@@ -724,8 +740,21 @@ private fun LegacyMiniPlayer(progressState: ProgressState, modifier: Modifier = 
       (600 / (1f + kotlin.math.exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
     }
 
-  val primaryColor = MaterialTheme.colorScheme.onSurface
+  val primaryColor = if (useGlass) glassConfig.resolveTextColor() else MaterialTheme.colorScheme.onSurface
   val trackColor = MaterialTheme.colorScheme.surfaceVariant
+
+  val legacyShape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+  val legacyModifier = if (useGlass) {
+    Modifier.liquidGlass(
+      config = glassConfig,
+      shape = legacyShape,
+    )
+  } else {
+    Modifier.clip(legacyShape).background(
+      if (pureBlack && isSystemInDarkTheme()) Color.Black
+      else MaterialTheme.colorScheme.surfaceContainer
+    )
+  }
 
   Box(
     modifier =
@@ -735,11 +764,7 @@ private fun LegacyMiniPlayer(progressState: ProgressState, modifier: Modifier = 
         .widthIn(max = 340.dp)
         .height(MiniPlayerHeight)
         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-        .background(
-          if (pureBlack && isSystemInDarkTheme()) Color.Black
-          else MaterialTheme.colorScheme.surfaceContainer
-        )
+        .then(legacyModifier)
         .let { baseModifier ->
           if (swipeThumbnail) {
             baseModifier.pointerInput(Unit) {

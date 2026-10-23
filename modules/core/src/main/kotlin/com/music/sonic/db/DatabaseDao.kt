@@ -640,6 +640,20 @@ interface DatabaseDao {
 
   @Transaction
   @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
+  @Query("SELECT * FROM album ORDER BY rowId")
+  fun allAlbumsForDownloads(): Flow<List<Album>>
+
+  @Transaction
+  @Query(
+    "SELECT *, (SELECT COUNT(*) FROM playlist_song_map WHERE playlistId = playlist.id) AS songCount FROM playlist ORDER BY rowId"
+  )
+  fun allPlaylistsForDownloads(): Flow<List<Playlist>>
+
+  @Query("SELECT * FROM playlist_song_map ORDER BY playlistId, position")
+  fun allPlaylistSongMapsForDownloads(): Flow<List<PlaylistSongMap>>
+
+  @Transaction
+  @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
   @Query(
     """
         SELECT DISTINCT artist.*,

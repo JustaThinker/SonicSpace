@@ -911,7 +911,7 @@ fun DownloadQualitySelector() {
   val (downloadQuality, onDownloadQualityChange) =
     rememberEnumPreference(
       key = com.music.sonic.constants.DownloadQualityKey,
-      defaultValue = com.music.sonic.constants.DownloadQuality.YOUTUBE
+      defaultValue = com.music.sonic.constants.DownloadQuality.OPUS
     )
 
   Column(modifier = Modifier.fillMaxWidth()) {
@@ -922,29 +922,21 @@ fun DownloadQualitySelector() {
       modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth()
     )
 
-    val options = listOf("Opus")
-    val selectedIndex =
-      when (downloadQuality) {
-        com.music.sonic.constants.DownloadQuality.YOUTUBE -> 0
-        else -> 0
-      }
+    val options = listOf(
+      "Lossless" to com.music.sonic.constants.DownloadQuality.LOSSLESS,
+      "High"     to com.music.sonic.constants.DownloadQuality.HIGH,
+      "Standard" to com.music.sonic.constants.DownloadQuality.OPUS,
+    )
 
     androidx.compose.foundation.layout.FlowRow(
       modifier = Modifier.padding(horizontal = 16.dp).padding(vertical = 8.dp).fillMaxWidth(),
       horizontalArrangement = Arrangement.spacedBy(8.dp),
       verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-      options.forEachIndexed { index, label ->
+      options.forEach { (label, quality) ->
         ToggleButton(
-          checked = selectedIndex == index,
-          onCheckedChange = {
-            val newQuality =
-              when (index) {
-                0 -> com.music.sonic.constants.DownloadQuality.YOUTUBE
-                else -> com.music.sonic.constants.DownloadQuality.YOUTUBE
-              }
-            onDownloadQualityChange(newQuality)
-          },
+          checked = downloadQuality == quality,
+          onCheckedChange = { onDownloadQualityChange(quality) },
           modifier = Modifier.weight(1f).height(48.dp).semantics { role = Role.RadioButton }
         ) {
           Text(text = label, style = MaterialTheme.typography.bodyMedium)

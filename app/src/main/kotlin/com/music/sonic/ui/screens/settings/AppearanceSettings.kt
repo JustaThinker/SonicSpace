@@ -63,14 +63,21 @@ import com.music.sonic.constants.CropAlbumArtKey
 import com.music.sonic.constants.DefaultOpenTabKey
 import com.music.sonic.constants.DensityScale
 import com.music.sonic.constants.DensityScaleKey
+import com.music.sonic.constants.DisableScreenshotKey
 import com.music.sonic.constants.DynamicThemeKey
 import com.music.sonic.constants.DynamicNavStyleKey
 import com.music.sonic.constants.EnableHapticsKey
 import com.music.sonic.constants.EnableHighRefreshRateKey
 import com.music.sonic.constants.EnableLyricsThumbnailPlayPauseKey
+import com.music.sonic.constants.BitChordPaletteKey
 import com.music.sonic.constants.HideNavLabelsKey
+import com.music.sonic.constants.LiquidGlassGlobalEnabledKey
+import com.music.sonic.constants.UseFloatingNavBarKey
 import com.music.sonic.constants.VibrationStrengthKey
 import com.music.sonic.utils.rememberHapticFeedbackService
+import com.music.sonic.ui.component.ThemeOption
+import com.music.sonic.ui.component.ThemeStyleCard
+import com.music.sonic.ui.component.getActiveThemeOption
 import com.music.sonic.constants.GridItemSize
 import com.music.sonic.constants.GridItemsSizeKey
 import com.music.sonic.constants.HidePlayerThumbnailKey
@@ -93,13 +100,7 @@ import com.music.sonic.constants.PlayerButtonsStyle
 import com.music.sonic.constants.PlayerButtonsStyleKey
 import com.music.sonic.constants.RotatingThumbnailKey
 import com.music.sonic.constants.SelectedThemeColorKey
-import com.music.sonic.constants.ShowBottomPlaylistKey
-import com.music.sonic.constants.ShowCachedPlaylistKey
 import com.music.sonic.constants.ShowCommentButtonKey
-import com.music.sonic.constants.ShowDownloadedPlaylistKey
-import com.music.sonic.constants.ShowExportedPlaylistKey
-import com.music.sonic.constants.ShowLikedPlaylistKey
-import com.music.sonic.constants.ShowTopPlaylistKey
 import com.music.sonic.constants.SliderStyle
 import com.music.sonic.constants.SliderStyleKey
 import com.music.sonic.constants.SquigglySliderKey
@@ -172,7 +173,13 @@ fun AppearanceSettings(
   val (selectedThemeColorInt) =
     rememberPreference(SelectedThemeColorKey, defaultValue = DefaultThemeColor.toArgb())
 
+  val (liquidGlassEnabled, onLiquidGlassEnabledChange) =
+    rememberPreference(LiquidGlassGlobalEnabledKey, defaultValue = false)
+  val (bitChordPaletteEnabled, onBitChordPaletteChange) =
+    rememberPreference(BitChordPaletteKey, defaultValue = false)
+
   val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
+  val currentThemeOption = getActiveThemeOption(dynamicTheme, bitChordPaletteEnabled, liquidGlassEnabled)
   val coroutineScope = rememberCoroutineScope()
 
   fun handleIconChange(iconType: com.music.sonic.utils.AppIconType) {
@@ -190,7 +197,7 @@ fun AppearanceSettings(
         val componentName = intent?.component
         val mainIntent = Intent.makeRestartActivityTask(componentName)
         activity.startActivity(mainIntent)
-        Runtime.getRuntime().exit(0)
+        activity.finish()
       }
     }
   }
@@ -281,18 +288,6 @@ fun AppearanceSettings(
   val (swipeToRemoveSong, onSwipeToRemoveSongChange) =
     rememberPreference(SwipeToRemoveSongKey, defaultValue = false)
 
-  val (showLikedPlaylist, onShowLikedPlaylistChange) =
-    rememberPreference(ShowLikedPlaylistKey, defaultValue = true)
-  val (showDownloadedPlaylist, onShowDownloadedPlaylistChange) =
-    rememberPreference(ShowDownloadedPlaylistKey, defaultValue = true)
-  val (showExportedPlaylist, onShowExportedPlaylistChange) =
-    rememberPreference(ShowExportedPlaylistKey, defaultValue = true)
-  val (showTopPlaylist, onShowTopPlaylistChange) =
-    rememberPreference(ShowTopPlaylistKey, defaultValue = true)
-  val (showBottomPlaylist, onShowBottomPlaylistChange) =
-    rememberPreference(ShowBottomPlaylistKey, defaultValue = true)
-  val (showCachedPlaylist, onShowCachedPlaylistChange) =
-    rememberPreference(ShowCachedPlaylistKey, defaultValue = true)
   val (showCommentButton, onShowCommentButtonChange) =
     rememberPreference(ShowCommentButtonKey, defaultValue = false)
 
@@ -573,7 +568,7 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
               }
             context.startActivity(intent)
-            Runtime.getRuntime().exit(0)
+            (context as? android.app.Activity)?.finish()
           }
         ) {
           Text(text = stringResource(R.string.restart))
@@ -855,90 +850,61 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
       Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top))
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
-      title = stringResource(R.string.theme),
       items =
-        buildList {
-          add(
-            Material3SettingsItem(
-              isHighlighted = (highlightKey == stringResource(R.string.legacy_icon)),
-              icon = painterResource(R.drawable.ic_app_settings),
-              title = { Text("App Icon") },
-              description = { Text("Choose your launcher icon") },
-              onClick = { navController.navigate("settings/appearance/app_icon") }
-            )
-          )
-          add(
-            Material3SettingsItem(
-              isHighlighted = (highlightKey == stringResource(R.string.theme)),
-              icon = painterResource(R.drawable.palette),
-              title = { Text(stringResource(R.string.theme)) },
-              description = { Text(stringResource(R.string.theme_desc)) },
-              onClick = { navController.navigate("settings/appearance/theme") }
-            )
-          )
-
-
-          add(
-            Material3SettingsItem(
-              isHighlighted = (highlightKey == stringResource(R.string.enable_high_refresh_rate)),
-              icon = painterResource(R.drawable.speed),
-              title = { Text(stringResource(R.string.enable_high_refresh_rate)) },
-              description = { Text(stringResource(R.string.enable_high_refresh_rate_desc)) },
-              trailingContent = {
-                Switch(
-                  checked = enableHighRefreshRate,
-                  onCheckedChange = onEnableHighRefreshRateChange,
-                  thumbContent = {
-                    Icon(
-                      painter =
-                        painterResource(
-                          id = if (enableHighRefreshRate) R.drawable.check else R.drawable.close
-                        ),
-                      contentDescription = null,
-                      modifier = Modifier.size(SwitchDefaults.IconSize)
-                    )
-                  }
-                )
-              },
-              onClick = { onEnableHighRefreshRateChange(!enableHighRefreshRate) }
-            )
-          )
-
-          if (!isUsingCustomColor) {
-            add(
-              Material3SettingsItem(
-                isHighlighted = (highlightKey == stringResource(R.string.enable_dynamic_theme)),
-                icon = painterResource(R.drawable.palette),
-                title = { Text(stringResource(R.string.enable_dynamic_theme)) },
-                description = { Text(stringResource(R.string.enable_dynamic_theme_desc)) },
-                trailingContent = {
-                  Switch(
-                    checked = dynamicTheme,
-                    onCheckedChange = onDynamicThemeChange,
-                    thumbContent = {
-                      Icon(
-                        painter =
-                          painterResource(
-                            id = if (dynamicTheme) R.drawable.check else R.drawable.close
-                          ),
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize)
-                      )
-                    }
-                  )
-                },
-                onClick = { onDynamicThemeChange(!dynamicTheme) }
+        listOf(
+          Material3SettingsItem(
+            isHighlighted = (highlightKey == stringResource(R.string.legacy_icon)),
+            icon = painterResource(R.drawable.ic_app_settings),
+            title = { Text("App Icon") },
+            description = { Text("Choose your launcher icon") },
+            onClick = { navController.navigate("settings/appearance/app_icon") }
+          ),
+          Material3SettingsItem(
+            isHighlighted = (highlightKey == stringResource(R.string.theme) || highlightKey == stringResource(R.string.enable_dynamic_theme)),
+            icon = painterResource(R.drawable.palette),
+            title = { Text(stringResource(R.string.theme)) },
+            description = {
+              Text(
+                when (currentThemeOption) {
+                  ThemeOption.STATIC -> if (isUsingCustomColor) "Static (Custom Color)" else "Static (Default)"
+                  ThemeOption.DYNAMIC -> "Dynamic (Wallpaper & Album Art)"
+                  ThemeOption.BITCHORD -> "BitChord (Signature Duotone)"
+                }
               )
-            )
-          }
-        }
+            },
+            onClick = { navController.navigate("settings/appearance/theme") }
+          ),
+          Material3SettingsItem(
+            isHighlighted = (highlightKey == stringResource(R.string.liquid_glass)),
+            icon = painterResource(R.drawable.tune),
+            title = { Text(stringResource(R.string.liquid_glass)) },
+            description = { Text("Enable or disable Liquid Glass blur effect") },
+            trailingContent = {
+              Switch(
+                checked = liquidGlassEnabled,
+                onCheckedChange = onLiquidGlassEnabledChange,
+                thumbContent = {
+                  Icon(
+                    painter =
+                      painterResource(
+                        id = if (liquidGlassEnabled) R.drawable.check else R.drawable.close
+                      ),
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                  )
+                }
+              )
+            },
+            onClick = { navController.navigate("settings/appearance/liquidglass") }
+          )
+        )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -1004,7 +970,9 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
         )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
+
+    var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -1033,18 +1001,33 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
               onClick = { showMiniPlayerBackgroundDialog = true }
             )
           )
+          add(
+            Material3SettingsItem(
+              isHighlighted = (highlightKey == stringResource(R.string.swipe_sensitivity)),
+              icon = painterResource(R.drawable.tune),
+              title = { Text(stringResource(R.string.swipe_sensitivity)) },
+              description = {
+                Text(
+                  stringResource(
+                    R.string.sensitivity_percentage,
+                    (swipeSensitivity * 100).roundToInt()
+                  )
+                )
+              },
+              onClick = { showSensitivityDialog = true }
+            )
+          )
         }
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) =
       rememberPreference(ThumbnailCornerRadiusKey, defaultValue = 3f)
 
-    var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
     var showThumbnailCornerRadiusDialog by rememberSaveable { mutableStateOf(false) }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
@@ -1316,23 +1299,7 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
                 }
               )
             }
-          ),
-          if (swipeThumbnail)
-            Material3SettingsItem(
-              isHighlighted = (highlightKey == stringResource(R.string.swipe_sensitivity)),
-              icon = painterResource(R.drawable.tune),
-              title = { Text(stringResource(R.string.swipe_sensitivity)) },
-              description = {
-                Text(
-                  stringResource(
-                    R.string.sensitivity_percentage,
-                    (swipeSensitivity * 100).roundToInt()
-                  )
-                )
-              },
-              onClick = { showSensitivityDialog = true }
-            )
-          else null
+          )
         )
     )
 
@@ -1452,28 +1419,13 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
       }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
 
     Material3SettingsGroup(
       scrollState = scrollState,
       title = stringResource(R.string.lyrics),
       items =
         listOfNotNull(
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.lyrics_text_position)),
-            icon = painterResource(R.drawable.lyrics),
-            title = { Text(stringResource(R.string.lyrics_text_position)) },
-            description = {
-              Text(
-                when (lyricsPosition) {
-                  LyricsPosition.LEFT -> stringResource(R.string.left)
-                  LyricsPosition.CENTER -> stringResource(R.string.center)
-                  LyricsPosition.RIGHT -> stringResource(R.string.right)
-                }
-              )
-            },
-            onClick = { showLyricsPositionDialog = true }
-          ),
           Material3SettingsItem(
             isHighlighted = (highlightKey == stringResource(R.string.lyrics_animation_style)),
             icon = painterResource(R.drawable.lyrics),
@@ -1523,43 +1475,6 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
             )
           } else null,
           Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.standard_lyrics_blur)),
-            icon = painterResource(R.drawable.lyrics),
-            title = { Text(stringResource(R.string.standard_lyrics_blur)) },
-            description = { Text(stringResource(R.string.apple_music_lyrics_blur_desc)) },
-            trailingContent = {
-              Switch(
-                checked = lyricsStandardBlur,
-                onCheckedChange = onLyricsStandardBlurChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id = if (lyricsStandardBlur) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onLyricsStandardBlurChange(!lyricsStandardBlur) }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.lyrics_text_size)),
-            icon = painterResource(R.drawable.lyrics),
-            title = { Text(stringResource(R.string.lyrics_text_size)) },
-            description = { Text("${lyricsTextSize.roundToInt()} sp") },
-            onClick = { showLyricsTextSizeDialog = true }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.lyrics_line_spacing)),
-            icon = painterResource(R.drawable.lyrics),
-            title = { Text(stringResource(R.string.lyrics_line_spacing)) },
-            description = { Text("${String.format("%.1f", lyricsLineSpacing)}x") },
-            onClick = { showLyricsLineSpacingDialog = true }
-          ),
-          Material3SettingsItem(
             isHighlighted = (highlightKey == stringResource(R.string.lyrics_click_change)),
             icon = painterResource(R.drawable.lyrics),
             title = { Text(stringResource(R.string.lyrics_click_change)) },
@@ -1604,51 +1519,6 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
             onClick = { onLyricsScrollChange(!lyricsScroll) }
           ),
           Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.lyrics_swipe_to_change_song)),
-            icon = painterResource(R.drawable.swipe),
-            title = { Text(stringResource(R.string.lyrics_swipe_to_change_song)) },
-            description = { Text(stringResource(R.string.lyrics_swipe_to_change_song_desc)) },
-            trailingContent = {
-              Switch(
-                checked = swipeLyrics,
-                onCheckedChange = onSwipeLyricsChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(id = if (swipeLyrics) R.drawable.check else R.drawable.close),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onSwipeLyricsChange(!swipeLyrics) }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.lyrics_thumbnail_play_pause)),
-            icon = painterResource(R.drawable.play),
-            title = { Text(stringResource(R.string.lyrics_thumbnail_play_pause)) },
-            description = { Text(stringResource(R.string.lyrics_thumbnail_play_pause_desc)) },
-            trailingContent = {
-              Switch(
-                checked = enableLyricsThumbnailPlayPause,
-                onCheckedChange = onEnableLyricsThumbnailPlayPauseChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id =
-                          if (enableLyricsThumbnailPlayPause) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onEnableLyricsThumbnailPlayPauseChange(!enableLyricsThumbnailPlayPause) }
-          ),
-          Material3SettingsItem(
             isHighlighted =
               (highlightKey == stringResource(R.string.hide_status_bar_on_fullscreen)),
             icon = painterResource(R.drawable.fullscreen),
@@ -1675,14 +1545,16 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
         )
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(10.dp))
+
+    val (disableScreenshot, onDisableScreenshotChange) =
+      rememberPreference(DisableScreenshotKey, defaultValue = false)
 
     Material3SettingsGroup(
       scrollState = scrollState,
       title = stringResource(R.string.misc),
       items =
         listOfNotNull(
-
           Material3SettingsItem(
             isHighlighted = (highlightKey == stringResource(R.string.swipe_song_to_add)),
             icon = painterResource(R.drawable.swipe),
@@ -1792,162 +1664,37 @@ PlayerBackgroundStyle.LIQUID_GLASS -> stringResource(R.string.player_background_
             },
             onClick = { onListenTogetherInTopBarChange(!listenTogetherInTopBar) }
           ),
-
           Material3SettingsItem(
             isHighlighted = (highlightKey == stringResource(R.string.display_density)),
             icon = painterResource(R.drawable.grid_view),
             title = { Text(stringResource(R.string.display_density)) },
             description = { Text(DensityScale.fromValue(densityScale).label) },
             onClick = { showDensityScaleDialog = true }
-          )
-        )
-    )
+          ),
+          Material3SettingsItem(
+            isHighlighted = (highlightKey == stringResource(R.string.enable_high_refresh_rate)),
+            icon = painterResource(R.drawable.speed),
+            title = { Text(stringResource(R.string.enable_high_refresh_rate)) },
+            description = { Text(stringResource(R.string.enable_high_refresh_rate_desc)) },
+            trailingContent = {
+              Switch(
+                checked = enableHighRefreshRate,
+                onCheckedChange = onEnableHighRefreshRateChange,
+                thumbContent = {
+                  Icon(
+                    painter =
+                      painterResource(
+                        id = if (enableHighRefreshRate) R.drawable.check else R.drawable.close
+                      ),
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                  )
+                }
+              )
+            },
+            onClick = { onEnableHighRefreshRateChange(!enableHighRefreshRate) }
+          ),
 
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Material3SettingsGroup(
-      scrollState = scrollState,
-      title = stringResource(R.string.auto_playlists),
-      items =
-        listOf(
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.show_liked_playlist)),
-            icon = painterResource(R.drawable.favorite),
-            title = { Text(stringResource(R.string.show_liked_playlist)) },
-            description = { Text(stringResource(R.string.show_liked_playlist_desc)) },
-            trailingContent = {
-              Switch(
-                checked = showLikedPlaylist,
-                onCheckedChange = onShowLikedPlaylistChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id = if (showLikedPlaylist) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onShowLikedPlaylistChange(!showLikedPlaylist) }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.show_downloaded_playlist)),
-            icon = painterResource(R.drawable.offline),
-            title = { Text(stringResource(R.string.show_downloaded_playlist)) },
-            description = { Text(stringResource(R.string.show_downloaded_playlist_desc)) },
-            trailingContent = {
-              Switch(
-                checked = showDownloadedPlaylist,
-                onCheckedChange = onShowDownloadedPlaylistChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id = if (showDownloadedPlaylist) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onShowDownloadedPlaylistChange(!showDownloadedPlaylist) }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.action_exported)),
-            icon = painterResource(R.drawable.download),
-            title = { Text(stringResource(R.string.action_exported)) },
-            description = { Text(stringResource(R.string.action_exported_desc)) },
-            trailingContent = {
-              Switch(
-                checked = showExportedPlaylist,
-                onCheckedChange = onShowExportedPlaylistChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id = if (showExportedPlaylist) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onShowExportedPlaylistChange(!showExportedPlaylist) }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.show_top_playlist)),
-            icon = painterResource(R.drawable.trending_up),
-            title = { Text(stringResource(R.string.show_top_playlist)) },
-            description = { Text(stringResource(R.string.show_top_playlist_desc)) },
-            trailingContent = {
-              Switch(
-                checked = showTopPlaylist,
-                onCheckedChange = onShowTopPlaylistChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id = if (showTopPlaylist) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onShowTopPlaylistChange(!showTopPlaylist) }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.show_bottom_playlist)),
-            icon = painterResource(R.drawable.trending_down),
-            title = { Text(stringResource(R.string.show_bottom_playlist)) },
-            description = { Text(stringResource(R.string.show_bottom_playlist_desc)) },
-            trailingContent = {
-              Switch(
-                checked = showBottomPlaylist,
-                onCheckedChange = onShowBottomPlaylistChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id = if (showBottomPlaylist) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onShowBottomPlaylistChange(!showBottomPlaylist) }
-          ),
-          Material3SettingsItem(
-            isHighlighted = (highlightKey == stringResource(R.string.show_cached_playlist)),
-            icon = painterResource(R.drawable.cached),
-            title = { Text(stringResource(R.string.show_cached_playlist)) },
-            description = { Text(stringResource(R.string.show_cached_playlist_desc)) },
-            trailingContent = {
-              Switch(
-                checked = showCachedPlaylist,
-                onCheckedChange = onShowCachedPlaylistChange,
-                thumbContent = {
-                  Icon(
-                    painter =
-                      painterResource(
-                        id = if (showCachedPlaylist) R.drawable.check else R.drawable.close
-                      ),
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                  )
-                }
-              )
-            },
-            onClick = { onShowCachedPlaylistChange(!showCachedPlaylist) }
-          )
         )
     )
     Spacer(modifier = Modifier.height(16.dp))

@@ -6,12 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.music.innertube.YouTube
 import com.music.innertube.models.YTItem
 import com.music.innertube.models.filterExplicit
-import com.music.innertube.models.filterVideoSongs
 import com.music.innertube.utils.YouTubeUrlParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.music.sonic.constants.HideExplicitKey
-import com.music.sonic.constants.HideVideoSongsKey
 import com.music.sonic.db.MusicDatabase
 import com.music.sonic.db.entities.SearchHistory
 import com.music.sonic.utils.dataStore
@@ -53,7 +51,6 @@ constructor(
             val result =
               if (parsedUrl != null) null else YouTube.searchSuggestions(query).getOrNull()
             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-            val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
 
             database
               .searchHistory(query)
@@ -73,7 +70,6 @@ constructor(
                         ?.distinctBy { it.id }
                         ?.filter { it.id != parsedItem?.id }
                         ?.filterExplicit(hideExplicit)
-                        ?.filterVideoSongs(hideVideoSongs)
                         .orEmpty(),
                   isFromLink = parsedUrl != null
                 )

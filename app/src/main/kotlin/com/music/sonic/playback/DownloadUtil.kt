@@ -22,6 +22,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import com.music.sonic.constants.AudioQuality
 import com.music.sonic.constants.DownloadOnWifiOnlyKey
 import com.music.sonic.constants.IpVersionKey
+import com.music.sonic.data.sources.SourceResolver
 import com.music.sonic.db.MusicDatabase
 import com.music.sonic.db.entities.FormatEntity
 import com.music.sonic.db.entities.SongEntity
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -63,13 +65,14 @@ constructor(
   val databaseProvider: DatabaseProvider,
   @DownloadCache val downloadCache: SimpleCache,
   @PlayerCache val playerCache: SimpleCache,
+  val sourceResolver: SourceResolver,
 ) {
   private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
   private val downloadQuality by
     enumPreference(
       context,
       com.music.sonic.constants.DownloadQualityKey,
-      com.music.sonic.constants.DownloadQuality.YOUTUBE
+      com.music.sonic.constants.DownloadQuality.OPUS
     )
   private val ipVersion by enumPreference(context, IpVersionKey, IpVersion.AUTO)
   private val songUrlCache = HashMap<String, Pair<String, Long>>()
@@ -123,11 +126,38 @@ constructor(
           return@Factory dataSpec.withUri(it.first.toUri())
         }
 
+      // ── Multi-source resolution (Addon → JioSaavn) before YouTube ──
+      val audioQualityForDownload = when (downloadQuality) {
+        com.music.sonic.constants.DownloadQuality.LOSSLESS -> AudioQuality.LOSSLESS
+        com.music.sonic.constants.DownloadQuality.HIGH     -> AudioQuality.HIGH
+        com.music.sonic.constants.DownloadQuality.OPUS     -> AudioQuality.OPUS
+      }
+      val externalStream = runBlocking(Dispatchers.IO) {
+        val dbSong = database.song(mediaId).firstOrNull()
+        val title  = dbSong?.song?.title.orEmpty()
+        val artist = dbSong?.artists?.joinToString { it.name }?.replace(" - Topic", "").orEmpty()
+        val dur    = dbSong?.song?.duration?.takeIf { it > 0 } ?: 0
+        if (title.isNotBlank() && audioQualityForDownload != AudioQuality.OPUS) {
+          sourceResolver.resolve(title, artist, dur, audioQualityForDownload)
+        } else null
+      }
+      if (externalStream != null) {
+        songUrlCache["${mediaId}_${downloadQuality.name}"] =
+          externalStream.url to (System.currentTimeMillis() + 3_600_000L)
+        return@Factory dataSpec.withUri(externalStream.url.toUri())
+      }
+
+      // ── YouTube fallback ──────────────────────────────────────────────
+      // Map HIGH/LOSSLESS to OPUS — YouTube has no lossless streams.
+      val ytAudioQuality = when (audioQualityForDownload) {
+        AudioQuality.LOSSLESS, AudioQuality.HIGH -> AudioQuality.OPUS
+        else -> audioQualityForDownload
+      }
       val playbackData =
         runBlocking(Dispatchers.IO) {
             YTPlayerUtils.playerResponseForPlayback(
               videoId = mediaId,
-              audioQuality = com.music.sonic.constants.AudioQuality.OPUS,
+              audioQuality = ytAudioQuality,
               connectivityManager = connectivityManager
             )
           }

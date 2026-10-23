@@ -153,12 +153,12 @@ fun LibraryPlaylistsScreen(
       songThumbnails = emptyList(),
     )
 
-  val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
-  val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
-  val (showExported) = rememberPreference(ShowExportedPlaylistKey, true)
-  val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
-  val (showBottom) = rememberPreference(ShowBottomPlaylistKey, true)
-  val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+  val (showLiked) = rememberPreference(ShowLikedPlaylistKey, false)
+  val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, false)
+  val (showExported) = rememberPreference(ShowExportedPlaylistKey, false)
+  val (showTop) = rememberPreference(ShowTopPlaylistKey, false)
+  val (showBottom) = rememberPreference(ShowBottomPlaylistKey, false)
+  val (showCached) = rememberPreference(ShowCachedPlaylistKey, false)
 
   val lazyListState = rememberLazyListState()
   val lazyGridState = rememberLazyGridState()

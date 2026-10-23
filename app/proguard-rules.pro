@@ -5,6 +5,29 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
+## InnerTube API & Data Models (Critical for release builds)
+-keep class com.music.innertube.** { *; }
+-keepclassmembers class com.music.innertube.** { *; }
+-keepclassmembers class com.music.innertube.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.music.innertube.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+## Sonic Core, Models, Playback & Multi-Source Resolvers
+-keep class com.music.sonic.models.** { *; }
+-keepclassmembers class com.music.sonic.models.** { *; }
+-keep class com.music.sonic.playback.** { *; }
+-keepclassmembers class com.music.sonic.playback.** { *; }
+-keep class com.music.sonic.data.sources.** { *; }
+-keepclassmembers class com.music.sonic.data.sources.** { *; }
+-keep class com.music.sonic.utils.YTPlayerUtils** { *; }
+-keepclassmembers class com.music.sonic.utils.YTPlayerUtils** { *; }
+-keep class com.music.sonic.utils.cipher.** { *; }
+-keep class com.music.sonic.utils.sabr.** { *; }
+-keep class com.music.sonic.utils.potoken.** { *; }
+
 # WEB_REMIX Streaming - WebView JavaScript interfaces
 -keepclassmembers class com.music.sonic.utils.sabr.EjsNTransformSolver$SolverWebView {
     @android.webkit.JavascriptInterface public *;
@@ -16,35 +39,41 @@
     @android.webkit.JavascriptInterface public *;
 }
 
-# Keep streaming utility classes
--keep class com.music.sonic.utils.cipher.** { *; }
--keep class com.music.sonic.utils.sabr.** { *; }
--keep class com.music.sonic.utils.potoken.** { *; }
-
 # Keep coroutine continuation for WebView callbacks
 -keepclassmembers class * {
     void resume(...);
     void resumeWithException(...);
 }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+## Media3 / ExoPlayer
+-keep class androidx.media3.** { *; }
+-keepclassmembers class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+## Protobuf & Nanojson
+-keep class com.google.protobuf.** { *; }
+-dontwarn com.google.protobuf.**
+-keep class com.grack.nanojson.** { *; }
+-dontwarn com.grack.nanojson.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+## Retrofit & Gson
+-keep class com.squareup.retrofit2.** { *; }
+-dontwarn com.squareup.retrofit2.**
+-keep class com.google.gson.** { *; }
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
 
 ## Kotlin Serialization
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-keepclassmembers class * {
+    *** Companion;
+}
+-keepclasseswithmembers class * {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
 # Keep `Companion` object fields of serializable classes.
-# This avoids serializer lookup through `getDeclaredClasses` as done for named companion objects.
 -if @kotlinx.serialization.Serializable class **
 -keepclasseswithmembers class <1> {
     static <1>$Companion Companion;
@@ -162,15 +191,6 @@
 -keep class com.music.shazamkit.models.** { *; }
 -keepclassmembers class com.music.shazamkit.models.** {
     *;
-}
-
-## Kotlinx Serialization
--keepattributes *Annotation*
--keepclassmembers class com.music.shazamkit.models.** {
-    *** Companion;
-}
--keepclasseswithmembers class com.music.shazamkit.models.** {
-    kotlinx.serialization.KSerializer serializer(...);
 }
 
 ## Listen Together Serialization

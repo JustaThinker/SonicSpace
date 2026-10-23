@@ -27,8 +27,10 @@ val EnableHapticsKey = booleanPreferencesKey("enableHaptics")
 val VibrationStrengthKey = floatPreferencesKey("vibration_strength")
 val HideNavLabelsKey = booleanPreferencesKey("hide_nav_labels")
 val DynamicNavStyleKey = booleanPreferencesKey("dynamic_nav_style")
+val ShowPlayerOptionChipsKey = booleanPreferencesKey("show_player_option_chips")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
 val SelectedThemeColorKey = intPreferencesKey("selectedThemeColor")
+val BitChordPaletteKey = booleanPreferencesKey("bitchord_palette")
 val DarkModeKey = stringPreferencesKey("darkMode")
 val PureBlackKey = booleanPreferencesKey("pureBlack")
 val PureBlackMiniPlayerKey = booleanPreferencesKey("pureBlackMiniPlayer")
@@ -108,15 +110,76 @@ val ShowAudioFallbackToastKey = booleanPreferencesKey("show_audio_fallback_toast
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 val IpVersionKey = stringPreferencesKey("ipVersion")
 
+// ─── High-Quality / Multi-Source Audio ───────────────────────────────────────
+
+/** Whether the user-configured addon server is enabled. */
+val AddonEnabledKey = androidx.datastore.preferences.core.booleanPreferencesKey("addon_enabled")
+
+/** Base URL of the addon server (e.g. "http://192.168.1.5:8080"). */
+val AddonServerUrlKey = stringPreferencesKey("addon_server_url")
+
+/** Whether JioSaavn 320 kbps fallback is enabled (default: true). */
+val JioSaavnEnabledKey = androidx.datastore.preferences.core.booleanPreferencesKey("jiosaavn_enabled")
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 enum class AudioQuality {
+  /**
+   * Lossless (FLAC/ALAC/Hi-Res). Resolved exclusively via the Addon server.
+   * If the addon server cannot match the track, falls through to YouTube
+   * without a silent downgrade to lossy sources.
+   */
+  LOSSLESS,
+
+  /**
+   * High quality (320 kbps MP3 / AAC). Resolved via Addon server first,
+   * then JioSaavn, then YouTube as last resort.
+   */
+  HIGH,
+
+  /**
+   * Opus/WebM — the existing default YouTube-sourced stream. External sources
+   * (Addon, JioSaavn) are still tried first before falling back to YouTube.
+   */
   OPUS,
+
+  /**
+   * Skip all external sources entirely and play directly from YouTube Music.
+   * Useful when the user wants to avoid third-party network calls.
+   */
+  YOUTUBE_ONLY,
 }
+
+/** Human-readable label shown in the Audio Quality settings dialog. */
+val AudioQuality.displayName: String
+  get() = when (this) {
+    AudioQuality.LOSSLESS      -> "Lossless (FLAC/ALAC)"
+    AudioQuality.HIGH          -> "High (320 kbps)"
+    AudioQuality.OPUS          -> "Opus (YouTube default)"
+    AudioQuality.YOUTUBE_ONLY  -> "YouTube Only"
+  }
+
+/** Lowercase API identifier sent to the addon server's quality parameter. */
+val AudioQuality.apiName: String
+  get() = name.lowercase()
 
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 
 enum class DownloadQuality {
-  YOUTUBE,
+  /** Try Addon → JioSaavn → YouTube fallback. */
+  LOSSLESS,
+  /** Try Addon → JioSaavn 320 kbps → YouTube fallback. */
+  HIGH,
+  /** YouTube stream only (standard quality). */
+  OPUS,
 }
+
+val DownloadQuality.displayName: String
+  get() = when (this) {
+    DownloadQuality.LOSSLESS -> "Lossless (Addon / JioSaavn)"
+    DownloadQuality.HIGH     -> "High (320 kbps)"
+    DownloadQuality.OPUS     -> "Standard (YouTube)"
+  }
 
 val DownloadOnWifiOnlyKey = booleanPreferencesKey("downloadOnWifiOnly")
 
@@ -806,3 +869,4 @@ val UseFloatingNavBarKey = booleanPreferencesKey("useFloatingNavBar")
 val SavedAccountsKey = stringPreferencesKey("savedAccounts")
 val LiveBlurDensityKey = floatPreferencesKey("live_blur_density")
 val DolbyAtmosEnabledKey = booleanPreferencesKey("dolby_atmos_enabled")
+val AppFontKey = stringPreferencesKey("app_font")

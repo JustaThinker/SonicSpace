@@ -115,13 +115,29 @@ import com.music.sonic.R
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import android.app.Activity
+import android.content.ContextWrapper
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.datastore.preferences.core.edit
+import com.music.sonic.constants.BitChordPaletteKey
 import com.music.sonic.constants.DarkModeKey
 import com.music.sonic.constants.DynamicNavStyleKey
 import com.music.sonic.constants.EnableHapticsKey
 import com.music.sonic.constants.HasSeenOnboardingKey
 import com.music.sonic.constants.HideNavLabelsKey
 import com.music.sonic.constants.VibrationStrengthKey
+import com.music.sonic.ui.theme.BitChordAccentRed
+import com.music.sonic.ui.theme.BitChordDarkColors
+import com.music.sonic.ui.theme.BitChordLightColors
 import com.music.sonic.utils.HapticFeedbackService
 import com.music.sonic.utils.dataStore
 import kotlinx.coroutines.launch
@@ -147,6 +163,47 @@ fun OnboardingScreen(
     var themeMode by rememberSaveable { mutableStateOf(prefs.getString("theme_mode", "system") ?: "system") }
     var hideNavLabels by rememberSaveable { mutableStateOf(prefs.getBoolean("hide_nav_labels", false)) }
     var dynamicNavStyle by rememberSaveable { mutableStateOf(prefs.getBoolean("dynamic_nav_style", false)) }
+    var useBitChordPalette by rememberSaveable { mutableStateOf(prefs.getBoolean("bitchord_palette", true)) }
+
+    val isSystemDark = isSystemInDarkTheme()
+    val isDark = when (themeMode.lowercase()) {
+        "dark" -> true
+        "light" -> false
+        else -> isSystemDark
+    }
+    val amoledPref = prefs.getBoolean("amoled_black", false)
+    val bitChordColors = remember(isDark, amoledPref) {
+        if (isDark) {
+            if (amoledPref) BitChordDarkColors.copy(surface = Color.Black, surfaceContainer = Color.Black)
+            else BitChordDarkColors
+        } else {
+            BitChordLightColors
+        }
+    }
+
+    val dynamicColorScheme = remember(isDark) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+            if (isDark) darkColorScheme() else lightColorScheme()
+        }
+    }
+
+    val currentColorScheme = if (useBitChordPalette) bitChordColors else dynamicColorScheme
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+                ?: ((view.context as? ContextWrapper)?.baseContext as? Activity)?.window
+            if (window != null) {
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = !isDark
+                    isAppearanceLightNavigationBars = !isDark
+                }
+            }
+        }
+    }
 
     val hapticsService = remember {
         HapticFeedbackService(
@@ -176,67 +233,79 @@ fun OnboardingScreen(
         micGranted = permissions[micPermission] ?: micGranted
     }
 
-    Scaffold(
-        bottomBar = {
-            val isNextEnabled = if (pagerState.currentPage == 4) allPermissionsGranted else true
-            SetupBottomBar(
-                pagerState = pagerState,
-                isNextEnabled = isNextEnabled,
-                onNextClicked = {
-                    if (pagerState.currentPage == 4 && !allPermissionsGranted) {
-                        val permsToRequest = mutableListOf<String>()
-                        if (!audioGranted) permsToRequest.add(audioPermission)
-                        if (!notifGranted && notifPermission != null) permsToRequest.add(notifPermission)
-                        if (!micGranted) permsToRequest.add(micPermission)
-                        if (permsToRequest.isNotEmpty()) {
-                            permissionLauncher.launch(permsToRequest.toTypedArray())
-                        }
-                    } else if (isNextEnabled && pagerState.currentPage < pagerState.pageCount - 1) {
-                        scope.launch {
-                            pagerState.animateScrollToPage(
-                                page = pagerState.currentPage + 1,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessLow)
-                            )
-                        }
-                    }
-                },
-                onBackClicked = {
-                    if (pagerState.currentPage > 0) {
-                        scope.launch {
-                            pagerState.animateScrollToPage(
-                                page = pagerState.currentPage - 1,
-                                animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessLow)
-                            )
-                        }
-                    }
-                },
-                onFinishClicked = {
-                    prefs.edit {
-                        putBoolean("has_seen_onboarding_v1", true)
-                            .putFloat("vibration_strength", hapticsLevel)
-                            .putString("theme_mode", themeMode)
-                            .putBoolean("hide_nav_labels", hideNavLabels)
-                            .putBoolean("dynamic_nav_style", dynamicNavStyle)
-                    }
-                    scope.launch {
-                        context.dataStore.edit { data ->
-                            data[HasSeenOnboardingKey] = true
-                            data[HideNavLabelsKey] = hideNavLabels
-                            data[DynamicNavStyleKey] = dynamicNavStyle
-                            data[VibrationStrengthKey] = hapticsLevel
-                            data[EnableHapticsKey] = (hapticsLevel > 0f)
-                            val darkModeVal = when (themeMode.lowercase()) {
-                                "dark" -> "ON"
-                                "light" -> "OFF"
-                                else -> "AUTO"
+    MaterialTheme(
+        colorScheme = currentColorScheme
+    ) {
+        CompositionLocalProvider(
+            LocalContentColor provides currentColorScheme.onSurface
+        ) {
+            Scaffold(
+                containerColor = MaterialTheme.colorScheme.background,
+                bottomBar = {
+                    val isNextEnabled = if (pagerState.currentPage == 4) allPermissionsGranted else true
+                    SetupBottomBar(
+                        pagerState = pagerState,
+                        isNextEnabled = isNextEnabled,
+                        onNextClicked = {
+                            if (pagerState.currentPage == 4 && !allPermissionsGranted) {
+                                val permsToRequest = mutableListOf<String>()
+                                if (!audioGranted) permsToRequest.add(audioPermission)
+                                if (!notifGranted && notifPermission != null) permsToRequest.add(notifPermission)
+                                if (!micGranted) permsToRequest.add(micPermission)
+                                if (permsToRequest.isNotEmpty()) {
+                                    permissionLauncher.launch(permsToRequest.toTypedArray())
+                                }
+                            } else if (isNextEnabled && pagerState.currentPage < pagerState.pageCount - 1) {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        page = pagerState.currentPage + 1,
+                                        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessLow)
+                                    )
+                                }
                             }
-                            data[DarkModeKey] = darkModeVal
+                        },
+                        onBackClicked = {
+                            if (pagerState.currentPage > 0) {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        page = pagerState.currentPage - 1,
+                                        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessLow)
+                                    )
+                                }
+                            }
+                        },
+                        onFinishClicked = {
+                            prefs.edit {
+                                putBoolean("has_seen_onboarding_v1", true)
+                                    .putFloat("vibration_strength", hapticsLevel)
+                                    .putString("theme_mode", themeMode)
+                                    .putBoolean("hide_nav_labels", hideNavLabels)
+                                    .putBoolean("dynamic_nav_style", dynamicNavStyle)
+                                    .putBoolean("bitchord_palette", useBitChordPalette)
+                            }
+                            scope.launch {
+                                context.dataStore.edit { data ->
+                                    data[HasSeenOnboardingKey] = true
+                                    data[HideNavLabelsKey] = hideNavLabels
+                                    data[DynamicNavStyleKey] = dynamicNavStyle
+                                    data[VibrationStrengthKey] = hapticsLevel
+                                    data[EnableHapticsKey] = (hapticsLevel > 0f)
+                                    data[BitChordPaletteKey] = useBitChordPalette
+                                    if (useBitChordPalette) {
+                                        data[com.music.sonic.constants.UseFloatingNavBarKey] = true
+                                    }
+                                    val darkModeVal = when (themeMode.lowercase()) {
+                                        "dark" -> "ON"
+                                        "light" -> "OFF"
+                                        else -> "AUTO"
+                                    }
+                                    data[DarkModeKey] = darkModeVal
+                                }
+                            }
+                            onComplete()
                         }
-                    }
-                    onComplete()
+                    )
                 }
-            )
-        }
     ) { paddingValues ->
         HorizontalPager(
             state = pagerState,
@@ -278,6 +347,7 @@ fun OnboardingScreen(
                     5 -> ThemeSelectionPage(
                         pageOffsetProvider = pageOffsetProvider,
                         themeMode = themeMode,
+                        useBitChordPalette = useBitChordPalette,
                         onThemeChanged = {
                             themeMode = it
                             prefs.edit { putString("theme_mode", it) }
@@ -287,6 +357,12 @@ fun OnboardingScreen(
                                 else -> "AUTO"
                             }
                             scope.launch { context.dataStore.edit { data -> data[DarkModeKey] = darkModeVal } }
+                            hapticsService.performClick(force = true)
+                        },
+                        onBitChordPaletteChanged = { enabled ->
+                            useBitChordPalette = enabled
+                            prefs.edit { putBoolean("bitchord_palette", enabled) }
+                            scope.launch { context.dataStore.edit { data -> data[BitChordPaletteKey] = enabled } }
                             hapticsService.performClick(force = true)
                         }
                     )
@@ -328,6 +404,8 @@ fun OnboardingScreen(
                         userProfileUrl = userProfileUrl
                     )
                 }
+            }
+        }
             }
         }
     }
@@ -445,7 +523,7 @@ fun WelcomePage(pageOffsetProvider: () -> Float) {
 fun EcosystemPage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.music_note,
+        drawableRes = R.drawable.spatialflow_onboarding_ic_youtube_music,
         iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
@@ -486,7 +564,7 @@ fun EcosystemPage(pageOffsetProvider: () -> Float) {
 fun FeatureListPage(pageOffsetProvider: () -> Float) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.equalizer,
+        drawableRes = R.drawable.spatialflow_onboarding_ic_lyrics,
         iconTint = MaterialTheme.colorScheme.primary
     ) {
         Column(
@@ -554,11 +632,13 @@ fun FeatureListPage(pageOffsetProvider: () -> Float) {
 fun ThemeSelectionPage(
     pageOffsetProvider: () -> Float,
     themeMode: String,
-    onThemeChanged: (String) -> Unit
+    useBitChordPalette: Boolean,
+    onThemeChanged: (String) -> Unit,
+    onBitChordPaletteChanged: (Boolean) -> Unit
 ) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.palette,
+        drawableRes = R.drawable.spatialflow_onboarding_ic_appearance,
         iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
@@ -636,6 +716,60 @@ fun ThemeSelectionPage(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .graphicsLayer {
+                    val offset = pageOffsetProvider()
+                    translationY = offset * 180f
+                    alpha = 1f - kotlin.math.abs(offset * 1.5f)
+                },
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "BitChord Palette",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(BitChordAccentRed)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Minimalist high-contrast aesthetic with BitChord red accents.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Switch(
+                    checked = useBitChordPalette,
+                    onCheckedChange = onBitChordPaletteChanged
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
@@ -650,7 +784,7 @@ fun NavigationStylePage(
 ) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.nav_bar,
+        drawableRes = R.drawable.spatialflow_onboarding_ic_settings,
         iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
@@ -855,7 +989,7 @@ fun PreferencesPage(
 ) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.vibration,
+        drawableRes = R.drawable.spatialflow_onboarding_ic_haptic,
         iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
@@ -931,7 +1065,7 @@ fun PermissionsPage(
 ) {
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = R.drawable.storage,
+        drawableRes = R.drawable.spatialflow_onboarding_ic_folder_open,
         iconTint = MaterialTheme.colorScheme.primary
     ) {
         Text(
@@ -1082,6 +1216,9 @@ fun OnboardingLoginDialog(
     onDismissRequest: () -> Unit,
     onLoginSuccess: () -> Unit
 ) {
+    var innerTubeCookie by com.music.sonic.utils.rememberPreference(com.music.sonic.constants.InnerTubeCookieKey, "")
+    var hasCaptured by remember { mutableStateOf(false) }
+
     androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismissRequest,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
@@ -1109,9 +1246,13 @@ fun OnboardingLoginDialog(
                                 webViewClient = object : android.webkit.WebViewClient() {
                                     override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
                                         super.onPageFinished(view, url)
+                                        if (hasCaptured) return
                                         val cookieManager = android.webkit.CookieManager.getInstance()
                                         val cookies = cookieManager.getCookie("https://music.youtube.com")
-                                        if (cookies != null && cookies.contains("SAPISID") && cookies.contains("HSID")) {
+                                        if (cookies != null && (cookies.contains("SAPISID") || cookies.contains("HSID"))) {
+                                            hasCaptured = true
+                                            innerTubeCookie = cookies
+                                            com.music.innertube.YouTube.cookie = cookies
                                             onLoginSuccess()
                                         }
                                     }
@@ -1150,7 +1291,7 @@ fun SignInPage(
 
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.search,
+        drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.spatialflow_onboarding_ic_youtube_music,
         imageUrl = if (isLoggedIn) userProfileUrl else null,
         iconTint = MaterialTheme.colorScheme.primary
     ) {
@@ -1241,7 +1382,7 @@ fun SignInPage(
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.search),
+                        painter = painterResource(id = R.drawable.spatialflow_onboarding_ic_youtube_music),
                         contentDescription = "YouTube Music",
                         modifier = Modifier.size(24.dp)
                     )
@@ -1305,7 +1446,7 @@ fun FinishPage(
 
     ImmersivePageLayout(
         pageOffsetProvider = pageOffsetProvider,
-        drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.search,
+        drawableRes = if (isLoggedIn && userProfileUrl != null) null else R.drawable.spatialflow_onboarding_ic_applogo,
         imageUrl = if (isLoggedIn) userProfileUrl else null,
         iconTint = MaterialTheme.colorScheme.primary
     ) {

@@ -235,6 +235,9 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
   @Inject
   lateinit var listenTogetherManager: com.music.sonic.listentogether.ListenTogetherManager
 
+  /** Multi-source resolver: tries Addon Server → JioSaavn before falling back to YouTube. */
+  @Inject lateinit var sourceResolver: com.music.sonic.data.sources.SourceResolver
+
   private lateinit var audioManager: AudioManager
   // Wi-Fi Lock: Prevents modern Wi-Fi 6/7 routers from putting the Wi-Fi chip into
   // low-power sleep mode while music is actively streaming in the background.
@@ -1043,14 +1046,18 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
       .distinctUntilChanged()
       .collect(scope) { YTPlayerUtils.forceOpusEnabled = it }
 
-    dataStore.data
-      .map {
+    combine(
+      dataStore.data.map {
         (try {
           it[AutomixCrossfadeKey]
         } catch (e: Exception) {
           null
         }) ?: false
-      }
+      },
+      listenTogetherManager.roomState
+    ) { enabled, roomState ->
+      enabled && roomState == null
+    }
       .distinctUntilChanged()
       .collect(scope) {
         automixEnabled = it
@@ -1062,6 +1069,7 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
           crossfadeTriggerJob = null
           activeAutomixPlan = null
           automixDebugInfo.value = null
+          releasePrebuffered()
           scheduleCrossfade()
         }
       }
@@ -1496,6 +1504,11 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
   }
 
   private fun skipOnError() {
+    if (listenTogetherManager.isInRoom && !listenTogetherManager.isHost) {
+      Timber.tag(TAG).d("skipOnError suppressed for guest in Listen Together room")
+      stopOnError()
+      return
+    }
 
     consecutivePlaybackErr += 2
     val nextWindowIndex = player.nextMediaItemIndex
@@ -1665,8 +1678,7 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
             .getInitialStatus()
             .filterExplicit(dataStore.get(HideExplicitKey, false))
             .filterVideoSongs(
-              dataStore.get(HideVideoSongsKey, false) ||
-                dataStore.get(com.music.sonic.constants.DataSaverEnabledKey, false)
+              dataStore.get(com.music.sonic.constants.DataSaverEnabledKey, false)
             )
         }
       if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
@@ -3243,6 +3255,32 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
       }
 
       Timber.tag("MusicService").i("FETCHING STREAM: $mediaId | quality=$lockedQuality")
+
+      // ── Multi-source resolution (Addon → JioSaavn) before YouTube ────────
+      // Fetch song metadata once here so we can pass title/artist/duration to
+      // SourceResolver. The same fetch happens below for YouTube anyway.
+      val externalStream = runBlocking(Dispatchers.IO) {
+        val dbSong = database.song(mediaId).firstOrNull()
+        val songTitle = dbSong?.song?.title.orEmpty()
+        val songArtist = dbSong?.artists
+          ?.joinToString { it.name }
+          ?.replace(" - Topic", "")
+          .orEmpty()
+        val songDurationSec = dbSong?.song?.duration?.takeIf { it > 0 } ?: 0
+        if (songTitle.isNotBlank()) {
+          sourceResolver.resolve(songTitle, songArtist, songDurationSec, lockedQuality)
+        } else null
+      }
+      if (externalStream != null) {
+        Timber.tag("MusicService").i(
+          "External stream resolved via ${externalStream.sourceLabel} for $mediaId"
+        )
+        songUrlCache["${mediaId}_${lockedQuality.name}"] =
+          externalStream.url to (System.currentTimeMillis() + 3_600_000L)
+        return@Factory dataSpec.withUri(externalStream.url.toUri())
+      }
+      // ── No external source matched — fall through to YouTube ─────────────
+
       val playbackData =
         runBlocking(Dispatchers.IO) {
             val dbSong = database.song(mediaId).firstOrNull()
@@ -3250,9 +3288,17 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
             val knownTitle = dbSong?.song?.title
             val knownDuration = dbSong?.song?.duration?.let { if (it > 0) it * 1000L else null }
 
+            // YouTube has no lossless — map HIGH/LOSSLESS → OPUS so findFormat
+            // picks the highest-bitrate Opus stream available (~256 kbps).
+            val ytQuality = when (lockedQuality) {
+              com.music.sonic.constants.AudioQuality.LOSSLESS,
+              com.music.sonic.constants.AudioQuality.HIGH ->
+                com.music.sonic.constants.AudioQuality.OPUS
+              else -> lockedQuality
+            }
             YTPlayerUtils.playerResponseForPlayback(
               videoId = mediaId,
-              audioQuality = lockedQuality,
+              audioQuality = ytQuality,
               connectivityManager = connectivityManager
             )
           }
@@ -3778,6 +3824,7 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
     crossfadeTriggerJob = null
     releasePrebuffered()
     if (
+      listenTogetherManager.isInRoom ||
       !crossfadeEnabled || player.duration == C.TIME_UNSET || player.duration <= crossfadeDuration
     )
       return

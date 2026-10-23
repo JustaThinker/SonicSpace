@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -103,12 +104,14 @@ fun MoodAndGenreCard(
     Box(
       modifier =
         Modifier.matchParentSize()
-          .background(
-            Brush.verticalGradient(
-              0f to Color.Black.copy(alpha = 0.24f),
-              0.62f to Color.Transparent
-            )
-          )
+          .drawWithCache {
+            val brush =
+              Brush.verticalGradient(
+                0f to Color.Black.copy(alpha = 0.24f),
+                0.62f to Color.Transparent
+              )
+            onDrawBehind { drawRect(brush) }
+          }
     )
 
     Text(

@@ -125,6 +125,11 @@ fun AutoPlaylistScreen(
   scrollBehavior: TopAppBarScrollBehavior,
   viewModel: AutoPlaylistViewModel = hiltViewModel(),
 ) {
+  if (viewModel.playlist == "downloaded") {
+    com.music.sonic.ui.screens.downloads.DownloadLibraryScreen(navController = navController)
+    return
+  }
+
   val context = LocalContext.current
   val menuState = LocalMenuState.current
   val haptic = LocalHapticFeedback.current

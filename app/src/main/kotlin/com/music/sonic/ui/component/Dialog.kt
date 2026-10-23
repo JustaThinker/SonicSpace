@@ -63,6 +63,7 @@ fun DefaultDialog(
     onDismissRequest = onDismiss,
     properties = DialogProperties(usePlatformDefaultWidth = false)
   ) {
+    ApplyWindowBlurBehind(blurRadiusPx = 50)
     Surface(
       modifier = Modifier.padding(24.dp),
       shape = AlertDialogDefaults.shape,

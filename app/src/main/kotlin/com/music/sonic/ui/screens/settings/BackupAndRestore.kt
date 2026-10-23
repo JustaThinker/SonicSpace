@@ -147,7 +147,7 @@ fun BackupAndRestore(
       when (screen) {
         BackupSubScreen.MAIN -> {
 
-          Spacer(modifier = Modifier.height(16.dp))
+          Spacer(modifier = Modifier.height(10.dp))
 
           Material3SettingsGroup(
             items =
@@ -182,7 +182,7 @@ fun BackupAndRestore(
         }
         BackupSubScreen.IMPORT -> {
 
-          Spacer(modifier = Modifier.height(16.dp))
+          Spacer(modifier = Modifier.height(10.dp))
 
           Material3SettingsGroup(
             title = "Import Data",
@@ -211,6 +211,12 @@ fun BackupAndRestore(
                       )
                     )
                   }
+                ),
+                Material3SettingsItem(
+                  title = { Text("Import from Spotify") },
+                  description = { Text(stringResource(R.string.spotify_import_desc)) },
+                  icon = painterResource(R.drawable.ic_spotify),
+                  onClick = { navController.navigate("settings/spotify_import") }
                 )
               )
           )

@@ -35,7 +35,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -47,10 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -113,7 +109,6 @@ import com.music.sonic.ui.component.PAGE_GUTTER
 import com.music.sonic.ui.component.YouTubeGridItem
 import com.music.sonic.ui.component.moodColumns
 import com.music.sonic.ui.menu.YouTubeAlbumMenu
-import com.music.sonic.ui.screens.search.suggestions.SuggestionsTabContent
 import com.music.sonic.utils.rememberEnumPreference
 import com.music.sonic.utils.rememberPreference
 import com.music.sonic.viewmodels.ExploreViewModel
@@ -139,7 +134,6 @@ fun SearchScreen(navController: NavController, pureBlack: Boolean) {
     rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
   val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
 
-  var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
   var searchActive by rememberSaveable { mutableStateOf(false) }
   var showSearchContent by remember { mutableStateOf(false) }
 
@@ -379,50 +373,7 @@ fun SearchScreen(navController: NavController, pureBlack: Boolean) {
               animationSpec = tween(durationMillis = 245, easing = FastOutSlowInEasing)
             ) + fadeOut()
         ) {
-          Column {
-            Spacer(modifier = Modifier.height(8.dp))
-            SecondaryTabRow(
-              selectedTabIndex = selectedTabIndex,
-              containerColor = Color.Transparent,
-              divider = {
-                androidx.compose.material3.HorizontalDivider(
-                  color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                  thickness = 1.5.dp
-                )
-              },
-              indicator = {
-                Box(
-                  modifier = Modifier.tabIndicatorOffset(selectedTabIndex).fillMaxWidth(),
-                  contentAlignment = Alignment.BottomCenter
-                ) {
-                  Box(
-                    modifier =
-                      Modifier.width(32.dp)
-                        .height(3.dp)
-                        .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                        .background(MaterialTheme.colorScheme.onSurface)
-                  )
-                }
-              }
-            ) {
-              Tab(
-                selected = selectedTabIndex == 0,
-                onClick = { selectedTabIndex = 0 },
-                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-                selectedContentColor = MaterialTheme.colorScheme.onSurface,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = { Text(stringResource(R.string.tab_explore)) }
-              )
-              Tab(
-                selected = selectedTabIndex == 1,
-                onClick = { selectedTabIndex = 1 },
-                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-                selectedContentColor = MaterialTheme.colorScheme.onSurface,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = { Text("Apple Music") }
-              )
-            }
-          }
+          Spacer(modifier = Modifier.height(8.dp))
         }
       }
     },
@@ -434,10 +385,7 @@ fun SearchScreen(navController: NavController, pureBlack: Boolean) {
     Box(modifier = Modifier.padding(top = paddingValues.calculateTopPadding()).fillMaxSize()) {
       if (!searchActive) {
         val tabPadding = PaddingValues(bottom = bottomPadding)
-        when (selectedTabIndex) {
-          0 -> ExploreTabContent(navController = navController, contentPadding = tabPadding)
-          1 -> SuggestionsTabContent(navController = navController, contentPadding = tabPadding)
-        }
+        ExploreTabContent(navController = navController, contentPadding = tabPadding)
       }
     }
   }
@@ -482,6 +430,14 @@ fun ExploreTabContent(
 
   BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
     val columns = moodColumns(maxWidth)
+    val sections = remember(moodAndGenresList, columns) {
+      moodAndGenresList
+        .orEmpty()
+        .filter { it.items.isNotEmpty() }
+        .map { section ->
+          section.title to section.items.chunked(columns)
+        }
+    }
 
     LazyColumn(
       modifier = Modifier.fillMaxSize(),
@@ -492,38 +448,49 @@ fun ExploreTabContent(
           ExploreSkeletonRows(columns = columns)
         }
       } else {
-        val allItems = moodAndGenresList?.flatMap { it.items }
-          ?.distinctBy { "${it.endpoint.browseId}|${it.endpoint.params}" }
-          .orEmpty()
-
-        val rows = allItems.chunked(columns)
-        items(
-          items = rows,
-          key = { row -> row.firstOrNull()?.let { "${it.endpoint.browseId}|${it.endpoint.params}" } ?: row.hashCode() }
-        ) { row ->
-          Row(
-            horizontalArrangement = Arrangement.spacedBy(MOOD_SPACING),
-            modifier =
-              Modifier
-                .padding(horizontal = PAGE_GUTTER)
-                .padding(bottom = MOOD_SPACING)
-          ) {
-            row.forEach { item ->
-              val artworkUrl = item.thumbnailUrl
-                ?: moodGenreArtworks["${item.endpoint.browseId}|${item.endpoint.params}"]
-
-              MoodAndGenreCard(
-                item = item,
-                thumbnailUrl = artworkUrl,
-                onClick = {
-                  navController.navigate(
-                    "youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}"
-                  )
-                },
-                modifier = Modifier.weight(1f)
-              )
+        sections.forEachIndexed { sectionIndex, (title, rows) ->
+          item(key = "section_title_$sectionIndex") {
+            Text(
+              text = title,
+              style = MaterialTheme.typography.titleMedium,
+              color = MaterialTheme.colorScheme.onSurface,
+              fontWeight = FontWeight.Bold,
+              modifier =
+                Modifier.fillMaxWidth()
+                  .padding(horizontal = PAGE_GUTTER)
+                  .padding(top = 8.dp, bottom = 12.dp)
+            )
+          }
+          items(
+            items = rows,
+            key = { row ->
+              "section_${sectionIndex}_" +
+                (row.firstOrNull()?.let {
+                  "${it.endpoint.browseId}|${it.endpoint.params}"
+                } ?: row.hashCode())
             }
-            repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+          ) { row ->
+            Row(
+              horizontalArrangement = Arrangement.spacedBy(MOOD_SPACING),
+              modifier =
+                Modifier.padding(horizontal = PAGE_GUTTER).padding(bottom = MOOD_SPACING)
+            ) {
+              row.forEach { item ->
+                val key = "${item.endpoint.browseId}|${item.endpoint.params}"
+                val artworkUrl = item.thumbnailUrl ?: moodGenreArtworks[key]
+                MoodAndGenreCard(
+                  item = item,
+                  thumbnailUrl = artworkUrl,
+                  onClick = {
+                    navController.navigate(
+                      "youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}"
+                    )
+                  },
+                  modifier = Modifier.weight(1f)
+                )
+              }
+              repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+            }
           }
         }
       }

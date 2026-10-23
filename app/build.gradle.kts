@@ -33,8 +33,8 @@ android {
     applicationId = "com.music.sonic"
     minSdk = 26
     targetSdk = 36
-    versionCode = 150
-    versionName = "1.5.0"
+    versionCode = 160
+    versionName = "1.6.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     vectorDrawables.useSupportLibrary = true
@@ -78,10 +78,6 @@ android {
     buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
     buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
     manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
-
-    ndk {
-      abiFilters += listOf("arm64-v8a", "armeabi-v7a")
-    }
   }
 
   flavorDimensions += listOf("variant")
@@ -100,17 +96,31 @@ android {
     }
   }
 
+  splits {
+    abi {
+      isEnable = true
+      reset()
+      include("arm64-v8a", "armeabi-v7a")
+      isUniversalApk = false
+    }
+  }
+
+  val abiVersionCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2)
+
   applicationVariants.all {
     val variantFlavor = productFlavors.find { it.dimension == "variant" }?.name
-    val newName = when (variantFlavor) {
-      "gms" -> "SonicSpace-gms.apk"
-      "foss" -> "SonicSpace-foss.apk"
-      else -> null
-    }
-    if (newName != null && buildType.name == "release") {
-      outputs.forEach { output ->
-        val apkOutput = output as? com.android.build.gradle.api.ApkVariantOutput
-        apkOutput?.outputFileName = newName
+    val variantBuildType = buildType.name
+    outputs.forEach { output ->
+      val apkOutput = output as? com.android.build.gradle.api.ApkVariantOutput
+      val abiFilter =
+        apkOutput?.filters?.find { it.filterType == "ABI" }?.identifier
+      if (abiFilter != null) {
+        val abiCode = abiVersionCodes[abiFilter] ?: 0
+        apkOutput.versionCodeOverride = (defaultConfig.versionCode ?: 1) * 10 + abiCode
+      }
+      if (variantFlavor != null && variantBuildType == "release") {
+        val abiSuffix = if (abiFilter != null) "-$abiFilter" else ""
+        apkOutput?.outputFileName = "SonicSpace-$variantFlavor$abiSuffix.apk"
       }
     }
   }
@@ -123,20 +133,21 @@ android {
       keyPassword = "android"
     }
     create("release") {
+      // Priority 1: CI/CD — env vars pointing to keystore.jks in the repo root
       val keystoreFile = rootProject.file("keystore.jks")
       if (keystoreFile.exists()) {
         storeFile = keystoreFile
+        storePassword = System.getenv("STORE_PASSWORD") ?: "sonicspace123"
+        keyAlias = System.getenv("KEY_ALIAS") ?: "sonicspace"
+        keyPassword = System.getenv("KEY_PASSWORD") ?: "sonicspace123"
       } else {
+        // Priority 2: local dev machine — app/keystore/release.keystore (committed to repo)
         val localKeystore = file("keystore/release.keystore")
-        if (localKeystore.exists()) {
-          storeFile = localKeystore
-        } else {
-          storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
-        }
+        storeFile = localKeystore
+        storePassword = System.getenv("STORE_PASSWORD") ?: "sonicspace123"
+        keyAlias = System.getenv("KEY_ALIAS") ?: "sonicspace"
+        keyPassword = System.getenv("KEY_PASSWORD") ?: "sonicspace123"
       }
-      storePassword = System.getenv("STORE_PASSWORD") ?: "android"
-      keyAlias = System.getenv("KEY_ALIAS") ?: "androiddebugkey"
-      keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
     }
     getByName("debug") {
       keyAlias = "androiddebugkey"

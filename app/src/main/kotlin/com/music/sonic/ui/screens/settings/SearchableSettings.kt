@@ -298,12 +298,6 @@ fun getAllSearchableSettings(): List<SearchableSetting> {
       "settings/player"
     ),
     SearchableSetting(
-      stringResource(R.string.auto_playlists),
-      stringResource(R.string.auto_playlists_desc),
-      "Appearance",
-      "settings/appearance"
-    ),
-    SearchableSetting(
       stringResource(R.string.auto_skip_next_on_error),
       stringResource(R.string.auto_skip_next_on_error_desc),
       "Player and audio",
@@ -1481,44 +1475,8 @@ fun getAllSearchableSettings(): List<SearchableSetting> {
       "settings/content"
     ),
     SearchableSetting(
-      stringResource(R.string.show_bottom_playlist),
-      stringResource(R.string.show_bottom_playlist_desc),
-      "Appearance",
-      "settings/appearance"
-    ),
-    SearchableSetting(
-      stringResource(R.string.show_cached_playlist),
-      stringResource(R.string.show_cached_playlist_desc),
-      "Appearance",
-      "settings/appearance"
-    ),
-    SearchableSetting(
       stringResource(R.string.show_comment_button),
       stringResource(R.string.show_comment_button_desc),
-      "Appearance",
-      "settings/appearance"
-    ),
-    SearchableSetting(
-      stringResource(R.string.show_downloaded_playlist),
-      stringResource(R.string.show_downloaded_playlist_desc),
-      "Appearance",
-      "settings/appearance"
-    ),
-    SearchableSetting(
-      stringResource(R.string.show_liked_playlist),
-      stringResource(R.string.show_liked_playlist_desc),
-      "Appearance",
-      "settings/appearance"
-    ),
-    SearchableSetting(
-      stringResource(R.string.show_top_playlist),
-      stringResource(R.string.show_top_playlist_desc),
-      "Appearance",
-      "settings/appearance"
-    ),
-    SearchableSetting(
-      stringResource(R.string.show_uploaded_playlist),
-      stringResource(R.string.show_uploaded_playlist_desc),
       "Appearance",
       "settings/appearance"
     ),

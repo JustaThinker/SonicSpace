@@ -44,24 +44,31 @@ interface Queue {
      * always snapping to the first one.
      */
     private fun withFilteredItems(newItems: List<MediaItem>): Status {
+      if (newItems.isEmpty()) return copy(items = emptyList(), mediaItemIndex = 0)
       val currentItem = items.getOrNull(mediaItemIndex)
       val newIndex =
         if (currentItem != null) {
           val occurrence =
             items.take(mediaItemIndex + 1).count { it.mediaId == currentItem.mediaId } - 1
-          newItems
+          val matchedIndex = newItems
             .withIndex()
             .filter { (_, item) -> item.mediaId == currentItem.mediaId }
             .getOrNull(occurrence)
-            ?.index ?: -1
+            ?.index
+
+          if (matchedIndex != null) {
+            matchedIndex
+          } else {
+            val itemsBefore = items.take(mediaItemIndex).map { it.mediaId }.toSet()
+            val lastPrecedingMatch = newItems.indexOfLast { it.mediaId in itemsBefore }
+            if (lastPrecedingMatch >= 0) lastPrecedingMatch else 0
+          }
         } else {
-          -1
+          0
         }
       return copy(
         items = newItems,
-        mediaItemIndex =
-          if (newIndex >= 0) newIndex
-          else mediaItemIndex.coerceIn(0, (newItems.size - 1).coerceAtLeast(0)),
+        mediaItemIndex = newIndex.coerceIn(0, (newItems.size - 1).coerceAtLeast(0)),
       )
     }
   }

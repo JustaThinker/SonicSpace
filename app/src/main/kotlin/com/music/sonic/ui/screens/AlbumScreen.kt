@@ -141,8 +141,6 @@ fun AlbumScreen(
   val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
   val dataSaverEnabled by
     rememberPreference(key = com.music.sonic.constants.DataSaverEnabledKey, defaultValue = false)
-  val hideVideoSongsPref by rememberPreference(key = HideVideoSongsKey, defaultValue = false)
-  val hideVideoSongs = if (dataSaverEnabled) true else hideVideoSongsPref
   val albumCanvasEnabledPref by
     rememberPreference(key = AlbumCanvasEnabledKey, defaultValue = false)
   val albumCanvasEnabled = if (dataSaverEnabled) false else albumCanvasEnabledPref
@@ -155,13 +153,10 @@ fun AlbumScreen(
     )
 
   val filteredSongs =
-    remember(albumWithSongs, hideExplicit, hideVideoSongs) {
+    remember(albumWithSongs, hideExplicit) {
       var songs = albumWithSongs?.songs ?: emptyList()
       if (hideExplicit) {
         songs = songs.filter { !it.song.explicit }
-      }
-      if (hideVideoSongs) {
-        songs = songs.filter { !it.song.isVideo }
       }
       songs
     }

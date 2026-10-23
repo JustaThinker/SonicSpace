@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -274,53 +276,40 @@ fun LibraryShelfCard(
 }
 
 @Composable
-fun OnDeviceCard(
+private fun LibraryShortcutRow(
   title: String,
-  subtitle: String,
-  colors: List<Color>,
   iconRes: Int,
   onClick: () -> Unit,
-  modifier: Modifier = Modifier.width(SHELF_CARD_WIDTH)
+  modifier: Modifier = Modifier
 ) {
-  val shape = RoundedCornerShape(12.dp)
-  Column(
-    modifier = modifier.clickable(onClick = onClick)
+  Row(
+    modifier = modifier
+      .fillMaxWidth()
+      .heightIn(min = 54.dp)
+      .clickable(onClick = onClick)
+      .padding(horizontal = 16.dp),
+    verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(
-      modifier = Modifier
-        .fillMaxWidth()
-        .aspectRatio(1f)
-        .clip(shape)
-        .background(Brush.horizontalGradient(colors))
-        .border(
-          width = 0.75.dp,
-          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-          shape = shape
-        ),
-      contentAlignment = Alignment.Center
-    ) {
-      Icon(
-        painter = painterResource(iconRes),
-        contentDescription = null,
-        tint = Color.White.copy(alpha = 0.95f),
-        modifier = Modifier.size(36.dp)
-      )
-    }
-    Spacer(Modifier.height(8.dp))
+    Icon(
+      painter = painterResource(iconRes),
+      contentDescription = null,
+      tint = MaterialTheme.colorScheme.primary,
+      modifier = Modifier.size(24.dp)
+    )
+    Spacer(Modifier.width(16.dp))
     Text(
       text = title,
-      style = MaterialTheme.typography.titleSmall,
-      fontWeight = FontWeight.SemiBold,
+      style = MaterialTheme.typography.bodyLarge,
       color = MaterialTheme.colorScheme.onBackground,
       maxLines = 1,
-      overflow = TextOverflow.Ellipsis
+      overflow = TextOverflow.Ellipsis,
+      modifier = Modifier.weight(1f)
     )
-    Text(
-      text = subtitle,
-      style = MaterialTheme.typography.bodySmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis
+    Icon(
+      painter = painterResource(R.drawable.navigate_next),
+      contentDescription = null,
+      tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+      modifier = Modifier.size(20.dp)
     )
   }
 }
@@ -390,9 +379,9 @@ fun LibraryMixScreen(
   val pullRefreshState = rememberPullToRefreshState()
 
   val playlists by viewModel.playlists.collectAsState()
+  val userPlaylists = playlists.filterNot { it.id.removePrefix("VL") in setOf("LM", "SE") }
   val albums by viewModel.albums.collectAsState()
   val artists by viewModel.artists.collectAsState()
-  val likedSongCount by viewModel.likedSongCount.collectAsState()
 
   val lazyListState = rememberLazyListState()
 
@@ -423,66 +412,41 @@ fun LibraryMixScreen(
       }
 
       item(key = "shelf_on_device") {
-        val isDark = isSystemInDarkTheme()
-        val likedColors = if (isDark) {
-          listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121))
-        } else {
-          listOf(Color(0xFFD94D6A), Color(0xFFE86F58), Color(0xFFEF9050))
-        }
-        val downloadedColors = if (isDark) {
-          listOf(Color(0xFF1E3C72), Color(0xFF2A5298))
-        } else {
-          listOf(Color(0xFF3867A6), Color(0xFF5287CC))
-        }
-        val localColors = if (isDark) {
-          listOf(Color(0xFF134E5E), Color(0xFF71B280))
-        } else {
-          listOf(Color(0xFF2E7B74), Color(0xFF56A687))
-        }
-
-        Column(Modifier.padding(bottom = 20.dp)) {
-          LibrarySectionHeader(title = "On device")
-          LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-          ) {
-            item(key = "liked_songs_device") {
-              OnDeviceCard(
-                title = stringResource(R.string.liked),
-                subtitle = "$likedSongCount ${stringResource(R.string.songs)}",
-                colors = likedColors,
-                iconRes = R.drawable.favorite,
-                onClick = { navController.navigate("auto_playlist/liked") }
-              )
-            }
-            item(key = "downloads") {
-              OnDeviceCard(
-                title = stringResource(R.string.downloaded_songs),
-                subtitle = "Downloaded songs",
-                colors = downloadedColors,
-                iconRes = R.drawable.download,
-                onClick = { navController.navigate("auto_playlist/downloaded") }
-              )
-            }
-            item(key = "local_music") {
-              OnDeviceCard(
-                title = stringResource(R.string.local_music),
-                subtitle = stringResource(R.string.audio_files_on_device),
-                colors = localColors,
-                iconRes = R.drawable.library_music,
-                onClick = { navController.navigate("auto_playlist/local") }
-              )
-            }
-          }
+        Column(Modifier.padding(bottom = 18.dp)) {
+          LibraryShortcutRow(
+            title = stringResource(R.string.liked),
+            iconRes = R.drawable.favorite,
+            onClick = { navController.navigate("auto_playlist/liked") }
+          )
+          HorizontalDivider(
+            modifier = Modifier.padding(start = 56.dp, end = 16.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outline
+          )
+          LibraryShortcutRow(
+            title = stringResource(R.string.downloaded_songs),
+            iconRes = R.drawable.download,
+            onClick = { navController.navigate("auto_playlist/downloaded") }
+          )
+          HorizontalDivider(
+            modifier = Modifier.padding(start = 56.dp, end = 16.dp),
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outline
+          )
+          LibraryShortcutRow(
+            title = stringResource(R.string.local_music),
+            iconRes = R.drawable.library_music,
+            onClick = { navController.navigate("auto_playlist/local") }
+          )
         }
       }
 
       item(key = "shelf_playlists") {
-        val visiblePlaylists = playlists.take(LIBRARY_ROW_MAX_ITEMS - 2)
+        val visiblePlaylists = userPlaylists.take(LIBRARY_ROW_MAX_ITEMS - 1)
         Column(Modifier.padding(bottom = 20.dp)) {
           LibrarySectionHeader(
             title = stringResource(R.string.filter_playlists),
-            onShowAll = if (playlists.size + 2 > LIBRARY_ROW_MAX_ITEMS) onShowAllPlaylists else null
+            onShowAll = if (userPlaylists.size + 1 > LIBRARY_ROW_MAX_ITEMS) onShowAllPlaylists else null
           )
           LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -493,15 +457,6 @@ fun LibraryMixScreen(
                 label = stringResource(R.string.create_playlist),
                 subtitle = "Saved to your library",
                 onClick = onNewPlaylist
-              )
-            }
-            item(key = "liked_songs_playlist") {
-              OnDeviceCard(
-                title = stringResource(R.string.liked),
-                subtitle = "$likedSongCount ${stringResource(R.string.songs)}",
-                colors = listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)),
-                iconRes = R.drawable.favorite,
-                onClick = { navController.navigate("auto_playlist/liked") }
               )
             }
             items(visiblePlaylists, key = { it.id }) { playlist ->

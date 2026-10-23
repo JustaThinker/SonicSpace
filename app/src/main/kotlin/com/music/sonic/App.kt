@@ -139,8 +139,8 @@ class App : Application(), SingletonImageLoader.Factory {
     val currentAudioQuality =
       settings[AudioQualityKey]?.toEnum(defaultValue = AudioQuality.OPUS) ?: AudioQuality.OPUS
     val currentDownloadQuality =
-      settings[DownloadQualityKey]?.toEnum(defaultValue = DownloadQuality.YOUTUBE)
-        ?: DownloadQuality.YOUTUBE
+      settings[DownloadQualityKey]?.toEnum(defaultValue = DownloadQuality.OPUS)
+        ?: DownloadQuality.OPUS
     YouTube.locale =
       YouTubeLocale(
         gl =

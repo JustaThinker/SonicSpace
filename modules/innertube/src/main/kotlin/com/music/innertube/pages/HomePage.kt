@@ -89,7 +89,6 @@ data class HomePage(
         )
       }
 
-
       private fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
         return when {
           renderer.isSong -> {
@@ -124,6 +123,7 @@ data class HomePage(
                     )
                   },
               duration = null,
+              musicVideoType = renderer.musicVideoType,
               thumbnail =
                 renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
               explicit =
@@ -293,6 +293,7 @@ data class HomePage(
             .firstOrNull { it.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("MPREb_") == true }
             ?.let { Album(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId ?: return@let null) },
           duration = null,
+          musicVideoType = renderer.musicVideoType,
           thumbnail = thumbnail,
           explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true
         )
@@ -309,7 +310,15 @@ data class HomePage(
     if (disableVideos) {
       copy(
         sections =
-          sections.map { section -> section.copy(items = section.items.filterVideoSongs(true)) }
+          sections.mapNotNull { section ->
+            if (section.title.contains("video", ignoreCase = true)) {
+              null
+            } else {
+              val filteredItems = section.items.filterVideoSongs(true)
+              if (filteredItems.isEmpty()) null
+              else section.copy(items = filteredItems)
+            }
+          }
       )
     } else this
 }

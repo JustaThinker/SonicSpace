@@ -7,41 +7,41 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AccountMenuResponse(
-  val actions: List<Action>,
+  val actions: List<Action> = emptyList(),
 ) {
   @Serializable
   data class Action(
-    val openPopupAction: OpenPopupAction,
+    val openPopupAction: OpenPopupAction? = null,
   ) {
     @Serializable
     data class OpenPopupAction(
-      val popup: Popup,
+      val popup: Popup? = null,
     ) {
       @Serializable
       data class Popup(
-        val multiPageMenuRenderer: MultiPageMenuRenderer,
+        val multiPageMenuRenderer: MultiPageMenuRenderer? = null,
       ) {
         @Serializable
         data class MultiPageMenuRenderer(
-          val header: Header?,
+          val header: Header? = null,
         ) {
           @Serializable
           data class Header(
-            val activeAccountHeaderRenderer: ActiveAccountHeaderRenderer,
+            val activeAccountHeaderRenderer: ActiveAccountHeaderRenderer? = null,
           ) {
             @Serializable
             data class ActiveAccountHeaderRenderer(
-              val accountName: Runs,
-              val email: Runs?,
-              val channelHandle: Runs?,
-              val accountPhoto: Thumbnails,
+              val accountName: Runs? = null,
+              val email: Runs? = null,
+              val channelHandle: Runs? = null,
+              val accountPhoto: Thumbnails? = null,
             ) {
               fun toAccountInfo() =
                 AccountInfo(
-                  name = accountName.runs!!.first().text,
-                  email = email?.runs?.first()?.text,
-                  channelHandle = channelHandle?.runs?.first()?.text,
-                  thumbnailUrl = accountPhoto.thumbnails.lastOrNull()?.url,
+                  name = accountName?.runs?.firstOrNull()?.text.orEmpty(),
+                  email = email?.runs?.firstOrNull()?.text,
+                  channelHandle = channelHandle?.runs?.firstOrNull()?.text,
+                  thumbnailUrl = accountPhoto?.thumbnails?.lastOrNull()?.url,
                 )
             }
           }

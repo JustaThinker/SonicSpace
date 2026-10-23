@@ -14,14 +14,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.palette.graphics.Palette
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.music.sonic.ui.theme.PlayerColorExtractor
+import com.music.sonic.ui.theme.extractGradientColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -32,7 +30,6 @@ fun AlbumGradient(
 ) {
   val context = LocalContext.current
   val surfaceColor = MaterialTheme.colorScheme.surface
-  val fallbackColorInt = MaterialTheme.colorScheme.primaryContainer.toArgb()
 
   var extractedColors by remember { mutableStateOf<List<Color>>(emptyList()) }
 
@@ -50,15 +47,9 @@ fun AlbumGradient(
           val bitmap = result.image?.toBitmap()
 
           if (bitmap != null) {
-            val palette =
-              withContext(Dispatchers.Default) {
-                Palette.from(bitmap).maximumColorCount(8).resizeBitmapArea(100 * 100).generate()
-              }
-            val colors =
-              PlayerColorExtractor.extractGradientColors(
-                palette = palette,
-                fallbackColor = fallbackColorInt
-              )
+            val colors = withContext(Dispatchers.Default) {
+              bitmap.extractGradientColors()
+            }
             extractedColors = colors
           }
         } catch (e: Exception) {

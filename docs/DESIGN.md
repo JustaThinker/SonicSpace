@@ -49,6 +49,11 @@ SonicSpace features two navigation styles configurable in **Settings -> Appearan
   * Typography: Bold title with secondary artist information.
   * Trailing actions (menu button, download indicator) remain cleanly aligned on the right.
 
+### Library Quick Actions
+* Keep the existing Replay banner as the library's single featured card.
+* Place Liked Songs, Downloads, and Local Music in full-width icon-and-chevron rows below Replay, separated by inset hairline dividers.
+* Do not repeat built-in liked or downloaded playlists in the user-created Playlists shelf.
+
 ### Feeds & Recommendation Shelves
 * **Daily Discover**: Always pinned to the top of the Home feed.
 * **Picked for You**: Displayed as a horizontal multi-page compact shelf with square-cropped cover art.
@@ -58,6 +63,19 @@ SonicSpace features two navigation styles configurable in **Settings -> Appearan
 * Tactile sensations accompany key user actions (tab clicks, seekbar adjustments, playback buttons).
 * Adjustable intensity slider (0–100%) available under Appearance settings.
 
+### Theme & Appearance
+* Keep theme controls compact and text-led; reserve icons for controls that need a recognizable symbol.
+* Group related options on simple surfaces with clear selected states, and avoid decorative gradients, oversized cards, and duplicate labels.
+* Keep theme mode, palette style, accent color, glass effects, and font choices easy to scan without hiding existing customization.
+
+### About & Updates
+* Keep app identity and developer details first, App Updates next, and acknowledgements as the final section on the scrollable page.
+* Keep update status/check, preferences, and version history in one compact settings group; avoid oversized status cards, nested cards, and ornamental animations.
+
+### Listening Stats
+* Give Your Replay its own scroll-aware top app bar on the stats destination.
+* Align summary content and horizontal shelves to a consistent 16 dp gutter; respect the app bar, system bars, navigation bar, and mini-player insets independently.
+
 ---
 
 ## 4. Typography System
@@ -66,3 +84,9 @@ SonicSpace relies on `MaterialTheme.typography` styled with Google Sans / Sans-S
 * **Display Titles**: ExtraBold / Black weight with tight negative letter-spacing for punchy headers.
 * **Section Headers**: `titleMedium` / `titleLarge` in SemiBold.
 * **Metadata & Captions**: `bodySmall` / `labelSmall` with subtle transparency (`0.75f - 0.85f`) to emphasize primary song titles.
+
+---
+
+## 5. Onboarding Illustrations
+
+The Welcome page retains SonicSpace's launcher artwork. The remaining onboarding pages use SpatialFlow vector illustrations for the ecosystem, features, sign-in, permissions, appearance, navigation, haptics, and completion screens. These vectors are attributed in the README and distributed under the included Apache-2.0 license.
