@@ -41,12 +41,13 @@ user_input_content.txt
 
 # Build outputs & release binaries
 *.apk
+!releases/*.apk
 *.aab
 *.dm
 /gms/
 /app/gms/
 output-metadata.json
 
-# Release signing keystore — never commit private keys to version control
+# Release signing keystore ï¿½ never commit private keys to version control
 app/keystore/release.keystore
 keystore.jks
